@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <string.h>
 #define MAX 512
 
 
@@ -18,22 +19,45 @@ int createProcess(char *fileName, char *files)
   return pid;
 }
 
-void saveToFile(char *files, char *fileName, struct stat stat){
-
-    FILE *file=fopen(files, "a");
-    if(file==NULL){
-      perror("File opening");
-      exit(5);
-    }
-
-    char finalString[MAX];
-
-    //METER DADOS NA FINALSTRING
-    fwrite(finalString, 1, MAX, file);
+//Ver como é guardado em string o time_t --> access time
 
 
+int saveToFile(char *fileDPath, char *filePath, char *fileName, struct stat stats)
+{
 
+	char *time = (char*)(stats.st_atime);
+	char *size = (char*)(stats.st_size);
+	char *mode = (char*)(stats.st_mode);
+
+	char fileInfo[MAX];
+
+	strcat(fileInfo, fileName);
+	strcat(fileInfo, " ");
+	strcat(fileInfo, time);
+	strcat(fileInfo, " ");
+	strcat(fileInfo, size);
+	strcat(fileInfo, " ");
+	strcat(fileInfo, mode);
+	strcat(fileInfo, " ");
+	strcat(fileInfo, filePath);
+	strcat(fileInfo, "\n");
+
+
+	//Put data into fileD
+	FILE* fileD = fopen(fileDPath, "a");
+	if(fileD == NULL)
+	{
+		perror("FileD opening");
+		exit(5);
+	}
+
+
+	fprintf(fileD, fileInfo);
+	fclose(fileD);
+
+	return 0;
 }
+
 
 int main(int argc, char *argv[])
 {
@@ -47,7 +71,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  char *files[] = argv[2];
+  char *files = argv[2];
 
   if ((dirp = opendir(argv[1])) == NULL) {
     perror(argv[1]);
@@ -63,6 +87,7 @@ int main(int argc, char *argv[])
       exit(3);
     }
 
+    // if it is a directory, launches new Process
     if (S_ISDIR(stat_buf.st_mode)){
       createProcess(direntp->d_name, files);
     }
@@ -78,8 +103,8 @@ int main(int argc, char *argv[])
     }
 
     if (S_ISREG(stat_buf.st_mode)){
-      //falta sincronizar
-        saveToFile(files, direntp->d_name, stat_buf);
+        printf("%-25s \n",direntp->d_name);
+        //saveToFile(files, direntp->d_name, stat_buf);
     }
   }
   closedir(dirp);

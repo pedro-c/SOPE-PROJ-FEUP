@@ -1,16 +1,32 @@
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#define TRUE 1
-#define FALSE 0
-#define MAX 256
-//ambos são ficheiros regulares;
-//o ambos têm o mesmo nome;
-//o ambos têm as mesmas permissões de acesso;
-//o ambos têm o mesmo conteúdo.
+#include <string.h>
 
+#define MAX 256
+
+//Ver como é guardado em string o time_t --> access time
+
+
+int saveToFile(FILE * fileD, char *filePath, char *fileName, struct stat stats)
+{
+
+
+	char fileInfo[MAX];
+
+
+
+	sprintf(fileInfo, "%s %d %d %d %s\n", fileName, stats.st_mtime, stats.st_size, stats.st_mode, filePath);
+
+	fprintf(fileD,fileInfo);
+
+
+	return 0;
+}
 
 int compareFileContent(char *filePath1, char *filePath2)
 {
@@ -54,7 +70,6 @@ int compareFileContent(char *filePath1, char *filePath2)
 
 int compareFiles(char *fileInfo1, char *fileInfo2)
 {
-	char *ch1, *ch2;
 
 	//Reads first word, i.e., fileName
 
@@ -63,36 +78,30 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 
 	char fileName1[MAX];
 	char fileName2[MAX];
+	fileName1[0] = '\0';
+	fileName2[0] = '\0';
 
 	strcat(fileName1, token1);
 	strcat(fileName2, token2);
 
 	//compares files' names. On different file names, return 0 for false
-	//NOTE: strcmp returns 0 if the strings are equal!
+	//strcmp returns 0 if the strings are equal!
 
 	if(strcmp(fileName1, fileName2))
 		return 0;
 
 
-	char at1[MAX];
-	char at2[MAX];
 
-	//Reads second word, i.e., last access time
+	//Skips second word, i.e., last access time
 
 	token1 = strtok(NULL, " ");
 	token2 = strtok(NULL, " ");
 
-	strcat(at1, token1);
-	strcat(at2, token2);
-
-	//compares files' last access time
-
-	if(strcmp(at1, at2))
-		return 0;
-
 
 	char size1[MAX];
 	char size2[MAX];
+	size1[0] = '\0';
+	size2[0] = '\0';
 
 	//Reads third word, i.e., file size
 
@@ -111,6 +120,8 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 
 	char m1[MAX];
 	char m2[MAX];
+	m1[0] = '\0';
+	m2[0] = '\0';
 
 	//Reads forth word, i.e., mode
 
@@ -127,6 +138,8 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 
 	char path1[MAX];
 	char path2[MAX];
+	path1[0] = '\0';
+	path2[0] = '\0';
 
 	token1 = strtok(NULL, " ");
 	token2 = strtok(NULL, " ");
@@ -140,37 +153,46 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 }
 
 
-
-int createProcess(char *fileName, char *files)
+int main()
 {
-  int pid = fork();
-  if(pid == 0)
-  {
-    execlp("listdir", "listdir", fileName, files, NULL);
-    perror("execlp");
-    exit(4);
-  }
-  return pid;
-}
+  struct dirent *direntp1;
+  struct dirent *direntp2;
+  struct stat stat_buf1;
+  struct stat stat_buf2;
 
 
+  FILE * fileD = fopen("/home/pedro/Desktop/Test/dest.txt", "w");
+  fclose(fileD);
+
+  DIR *dirp1;
+  DIR *dirp2;
+
+  dirp1 = opendir("/home/pedro/Desktop/Test/test1/test3");
+  dirp2 = opendir("/home/pedro/Desktop/Test/test2");
+
+  direntp1 = readdir(dirp1);
+  direntp2 = readdir(dirp2);
+
+  lstat(direntp1->d_name, &stat_buf1);
+  lstat(direntp2->d_name, &stat_buf2);
 
 
-int main(int argc, char *argv[]) {
+  fileD = fopen("/home/pedro/Desktop/Test/dest.txt", "a");
 
-es
-  if (argc != 2) {
-    fprintf(stderr, "Invalid Arguments");
-    exit(1);
-  }
+  saveToFile(fileD, "/home/pedro/Desktop/Test/test1/test3/doc.txt", "doc.txt", stat_buf1);
+  saveToFile(fileD, "/home/pedro/Desktop/Test/test1/test2/doc.txt", "doc.txt", stat_buf1);
 
-  char files[] = "\"To Save\" File";
 
-  if(createProcess(argv[1], files) > 0)
-  {
-    wait(); // a completar
-    //compareFiles(files);
-  }
+  fclose(fileD);
 
-  return 0;
+	if(compareFiles("doc.txt 1460629843 4096 16893 /home/pedro/Desktop/Test/test1/test3/doc.txt\0", "doc.txt 1460629843 4096 16893 /home/pedro/Desktop/Test/test1/test2/doc.txt\0"))
+	{
+		printf("Iguais\n");
+	}
+	else
+	{
+		printf("Diferentes\n");
+	}
+
+	return 0;
 }
