@@ -59,27 +59,31 @@ int compareFileContent(char *filePath1, char *date1, char *filePath2, char *date
 			if(date1 > date2){
 				if(unlink(path)==-1){
 					perror("unlink");
+					exit(4);
 				}
 				if(link(path2, path)==-1){
 					perror("link");
-				}else{
-					FILE *hardLinksFile;
-					hardLinksFile = fopen(hardLinksFilePath, "r");
-					fprintf(hardLinksFile,path2);
-					fclose(hardLinksFile);
+					exit(4);
 				}
+				FILE *hardLinksFile;
+				hardLinksFile = fopen(hardLinksFilePath, "w");
+				fprintf(hardLinksFile,path2);
+				fclose(hardLinksFile);
+
 			}else{
 				if(unlink(path2)==-1){
 					perror("unlink");
+					exit(4);
 				}
 				if(link(path, path2)==-1){
 					perror("link");
-				}else{
-					FILE *hardLinksFile;
-					hardLinksFile = fopen(hardLinksFilePath, "r");
-					fprintf(hardLinksFile,path2);
-					fclose(hardLinksFile);
+					exit(4);
 				}
+				FILE *hardLinksFile;
+				hardLinksFile = fopen(hardLinksFilePath, "w");
+				fprintf(hardLinksFile,path2);
+				fclose(hardLinksFile);
+
 			}
 
 
@@ -210,7 +214,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 	sprintf(fileDPath, "%s/files.txt", cwd);
-	sprintf(hardLinksFilePath, "%s/hlinks.txt", cwd);
+	sprintf(hardLinksFilePath, "%s/hlinks.txt", argv[1]);
 
 	//Create new file to store info
 	FILE* fileD = fopen(fileDPath, "w");
@@ -220,13 +224,13 @@ int main(int argc, char *argv[]) {
 	FILE* hardLinksFile = fopen(hardLinksFilePath, "w");
 	fclose(hardLinksFile);
 
-/*
+
   if (argc != 2) {
     fprintf(stderr, "Invalid Arguments");
     exit(1);
   }
-*/
-	int pid = createProcess("/home/pedro/Desktop/Test", cwd);
+
+	int pid = createProcess(argv[1], cwd);
 
 
 
