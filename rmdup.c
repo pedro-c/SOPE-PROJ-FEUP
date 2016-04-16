@@ -3,9 +3,11 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <string.h>
 #define TRUE 1
 #define FALSE 0
-#define MAX 256
+#define MAX 1024
+
 //ambos são ficheiros regulares;
 //o ambos têm o mesmo nome;
 //o ambos têm as mesmas permissões de acesso;
@@ -54,86 +56,69 @@ int compareFileContent(char *filePath1, char *filePath2)
 
 int compareFiles(char *fileInfo1, char *fileInfo2)
 {
-	char *ch1, *ch2;
 
-	//Reads first word, i.e., fileName
-
-	char* token1 = strtok(fileInfo1, " ");
-	char* token2 = strtok(fileInfo2, " ");
-
+//FILEINFO1
+	//get file name
 	char fileName1[MAX];
-	char fileName2[MAX];
+	char* token1 = strtok(fileInfo1, " ");
 
-	strcat(fileName1, token1);
-	strcat(fileName2, token2);
-
-	//compares files' names. On different file names, return 0 for false
-	//NOTE: strcmp returns 0 if the strings are equal!
-
-	if(strcmp(fileName1, fileName2))
-		return 0;
+	sprintf(fileName1, "%s", token1);
 
 
-	char at1[MAX];
-	char at2[MAX];
-
-	//Reads second word, i.e., last access time
-
+	//skip date
 	token1 = strtok(NULL, " ");
-	token2 = strtok(NULL, " ");
-
-	strcat(at1, token1);
-	strcat(at2, token2);
-
-	//compares files' last access time
-
-	if(strcmp(at1, at2))
-		return 0;
 
 
+	//get size
 	char size1[MAX];
-	char size2[MAX];
-
-	//Reads third word, i.e., file size
-
 	token1 = strtok(NULL, " ");
-	token2 = strtok(NULL, " ");
-
-	strcat(size1, token1);
-	strcat(size2, token2);
-
-	//compares files' size
-
-	if(strcmp(size1, size2))
-		return 0;
+	sprintf(size1, "%s", token1);
 
 
-
+	//get mode
 	char m1[MAX];
-	char m2[MAX];
-
-	//Reads forth word, i.e., mode
-
 	token1 = strtok(NULL, " ");
-	token2 = strtok(NULL, " ");
+	sprintf(m1, "%s", token1);
 
-	strcat(m1, token1);
-	strcat(m2, token2);
-
-	//compares files' size
-
-	if(strcmp(m1, m2))
-		return 0;
-
+	//get path
 	char path1[MAX];
-	char path2[MAX];
-
 	token1 = strtok(NULL, " ");
-	token2 = strtok(NULL, " ");
+	sprintf(path1, "%s", token1);
 
-	strcat(path1, token1);
-	strcat(path2, token2);
+	//FILEINFO2
+		//get file name
+		char fileName2[MAX];
+		char* token2 = strtok(fileInfo2, " ");
+		sprintf(fileName2, "%s", token2);
 
+		//skip date
+		token2 = strtok(NULL, " ");
+
+		//get size
+		char size2[MAX];
+		token2 = strtok(NULL, " ");
+		sprintf(size2, "%s", token2);
+
+		//get mode
+		char m2[MAX];
+		token2 = strtok(NULL, " ");
+		sprintf(m2, "%s", token2);
+
+		//get path
+		char path2[MAX];
+		token2 = strtok(NULL, " ");
+		sprintf(path2, "%s", token2);
+
+		//for debuging
+		printf("%s %s %s %s\n", fileName1, size1, m1, path1 );
+		printf("%s %s %s %s\n", fileName2, size2, m2, path2 );
+
+		if(strcmp(fileName1, fileName2) != 0)
+			return 0;
+		if(strcmp(size1, size2) != 0)
+			return 0;
+		if(strcmp(m1, m2) != 0)
+		  return 0;
 
 	return compareFileContent(path1, path2);
 
@@ -141,12 +126,15 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 
 
 
-int createProcess(char *fileName, char *files)
+
+int createProcess(char *fileName, char *home)
 {
   int pid = fork();
   if(pid == 0)
   {
-    execlp("listdir", "listdir", fileName, files, NULL);
+		char lsPath[MAX];
+		sprintf(lsPath, "%s/listdir", home);
+    execl(lsPath, "listdir", fileName, home, NULL);
     perror("execlp");
     exit(4);
   }
@@ -158,18 +146,50 @@ int createProcess(char *fileName, char *files)
 
 int main(int argc, char *argv[]) {
 
-es
+	char cwd[MAX];
+	char fileDPath[MAX];
+	char line[MAX];
+	char line2[MAX];
+
+	//Gets current directory for later usage
+	if(getcwd(cwd, sizeof(cwd)) == NULL)
+	{
+		perror("Getting CWD");
+		exit(1);
+	}
+	sprintf(fileDPath, "%s/fileD.txt", cwd);
+
+	//Create new file to store info
+	FILE* fileD = fopen(fileDPath, "w");
+	fclose(fileD);
+
+/*
   if (argc != 2) {
     fprintf(stderr, "Invalid Arguments");
     exit(1);
   }
-
-  char files[] = "\"To Save\" File";
-
-  if(createProcess(argv[1], files) > 0)
+*/
+	int pid = createProcess("/home/pedro/Desktop/Test", cwd);
+  if(1)
   {
-    wait(); // a completar
-    //compareFiles(files);
+		FILE *fileD;
+		FILE *fileD2;
+		fileD = fopen (fileDPath, "rt");
+		fileD2 = fopen (fileDPath, "rt");
+		while(fgets(line, MAX, fileD) != NULL)
+   	{
+			while(fgets(line2, MAX, fileD2) != NULL)
+	   	{
+					if(compareFiles(line, line2)==1){
+						printf("Diferentes!");
+					}else{
+						printf("Iguais!");
+					}
+	   	}
+   	}
+   	fclose(fileD);
+		fclose(fileD2);
+
   }
 
   return 0;
