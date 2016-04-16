@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <sys/wait.h>
 #define TRUE 1
 #define FALSE 0
 #define MAX 1024
@@ -14,14 +15,17 @@
 //o ambos têm o mesmo conteúdo.
 
 
-int compareFileContent(char *filePath1, char *filePath2)
+int compareFileContent(char *filePath1, char *date1, char *filePath2, char *date2, char* hardLinksFilePath)
 {
 	FILE *file1, *file2;
 
-	//used to compare files character by character
-	int ch1, ch2;
 
-	file1 = fopen(filePath1, "r");
+	//used to compare files character by character
+  char ch1, ch2;
+	char* path = strtok(filePath1, "\n");
+	char* path2 = strtok(filePath2, "\n");
+
+	file1 = fopen(path, "r");
 
 	if(file1 == NULL)
 	{
@@ -29,7 +33,7 @@ int compareFileContent(char *filePath1, char *filePath2)
 		exit(6);
 	}
 
-	file2 = fopen(filePath2, "r");
+	file2 = fopen(path2, "r");
 
 	if(file2 == NULL)
 	{
@@ -47,14 +51,48 @@ int compareFileContent(char *filePath1, char *filePath2)
 	fclose(file1);
 	fclose(file2);
 
-	if(ch1 == ch2) //if the characters remain the same, the loop ran through the entire two files, so they are identical
-		return 1; //If they are identical, return 1 for true
+	//if the characters remain the same, the loop ran through the entire two files, so they are identical
+	if(ch1 == ch2){
+
+			printf("%s", path);
+
+			if(date1 > date2){
+				if(unlink(path)==-1){
+					perror("unlink");
+				}
+				if(link(path2, path)==-1){
+					perror("link");
+				}else{
+					FILE *hardLinksFile;
+					hardLinksFile = fopen(hardLinksFilePath, "r");
+					fprintf(hardLinksFile,path2);
+					fclose(hardLinksFile);
+				}
+			}else{
+				if(unlink(path2)==-1){
+					perror("unlink");
+				}
+				if(link(path, path2)==-1){
+					perror("link");
+				}else{
+					FILE *hardLinksFile;
+					hardLinksFile = fopen(hardLinksFilePath, "r");
+					fprintf(hardLinksFile,path2);
+					fclose(hardLinksFile);
+				}
+			}
+
+
+
+			return 1; //If they are identical, return 1 for true
+	}
+
 
 	//If they are not identical, return 0 for false
 	return 0;
 }
 
-int compareFiles(char *fileInfo1, char *fileInfo2)
+int compareFiles(char *fileInfo1, char *fileInfo2, char *hardLinksFilePath)
 {
 
 //FILEINFO1
@@ -66,8 +104,9 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 
 
 	//skip date
+	char date1[MAX];
 	token1 = strtok(NULL, " ");
-
+	sprintf(date1, "%s", token1);
 
 	//get size
 	char size1[MAX];
@@ -92,7 +131,9 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 		sprintf(fileName2, "%s", token2);
 
 		//skip date
+		char date2[MAX];
 		token2 = strtok(NULL, " ");
+		sprintf(date2, "%s", token2);
 
 		//get size
 		char size2[MAX];
@@ -110,8 +151,9 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 		sprintf(path2, "%s", token2);
 
 		//for debuging
-		printf("%s %s %s %s\n", fileName1, size1, m1, path1 );
-		printf("%s %s %s %s\n", fileName2, size2, m2, path2 );
+		//printf("%s %s %s %s\n", fileName1, size1, m1, path1 );
+		//printf("%s %s %s %s\n", fileName2, size2, m2, path2 );
+
 
 		if(strcmp(fileName1, fileName2) != 0)
 			return 0;
@@ -120,7 +162,8 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 		if(strcmp(m1, m2) != 0)
 		  return 0;
 
-	return compareFileContent(path1, path2);
+
+	return compareFileContent(path1, date1, path2, date2, hardLinksFilePath);
 
 }
 
@@ -129,7 +172,9 @@ int compareFiles(char *fileInfo1, char *fileInfo2)
 
 int createProcess(char *fileName, char *home)
 {
-  int pid = fork();
+	pid_t pid;
+
+  pid = fork();
   if(pid == 0)
   {
 		char lsPath[MAX];
@@ -138,7 +183,12 @@ int createProcess(char *fileName, char *home)
     perror("execlp");
     exit(4);
   }
-  return pid;
+	if (pid > 0){
+		wait(NULL);
+		return 0;
+
+	}
+  return 1;
 }
 
 
@@ -148,20 +198,27 @@ int main(int argc, char *argv[]) {
 
 	char cwd[MAX];
 	char fileDPath[MAX];
+	char hardLinksFilePath[MAX];
+	char buff[MAX];
+	char buff2[MAX];
 	char line[MAX];
 	char line2[MAX];
-
 	//Gets current directory for later usage
 	if(getcwd(cwd, sizeof(cwd)) == NULL)
 	{
 		perror("Getting CWD");
 		exit(1);
 	}
-	sprintf(fileDPath, "%s/fileD.txt", cwd);
+	sprintf(fileDPath, "%s/files.txt", cwd);
+	sprintf(hardLinksFilePath, "%s/hlinks.txt", cwd);
 
 	//Create new file to store info
 	FILE* fileD = fopen(fileDPath, "w");
 	fclose(fileD);
+
+	//Create new file to store Hard Links
+	FILE* hardLinksFile = fopen(hardLinksFilePath, "w");
+	fclose(hardLinksFile);
 
 /*
   if (argc != 2) {
@@ -170,25 +227,40 @@ int main(int argc, char *argv[]) {
   }
 */
 	int pid = createProcess("/home/pedro/Desktop/Test", cwd);
-  if(1)
+
+
+
+  if(pid==0)
   {
 		FILE *fileD;
-		FILE *fileD2;
-		fileD = fopen (fileDPath, "rt");
-		fileD2 = fopen (fileDPath, "rt");
-		while(fgets(line, MAX, fileD) != NULL)
+
+		fileD = fopen (fileDPath, "r");
+
+		while(fgets(buff, MAX, (FILE*)fileD) != NULL)
    	{
-			while(fgets(line2, MAX, fileD2) != NULL)
+			FILE *fileD2;
+			fileD2 = fopen (fileDPath, "r");
+			while(fgets(buff2, MAX, (FILE*)fileD2) != NULL)
 	   	{
-					if(compareFiles(line, line2)==1){
-						printf("Diferentes!");
-					}else{
-						printf("Iguais!");
+				sprintf(line, "%s", buff);
+				sprintf(line2, "%s", buff2);
+				printf("1 : %s", line );
+				printf("2 : %s", line2 );
+					if (strcmp(line,line2) != 0){
+						if(compareFiles(line, line2, hardLinksFilePath)==1){
+							printf("Iguais!\n");
+						}else{
+							printf("Diferentes!\n");
+						}
 					}
+
 	   	}
+			fclose(fileD2);
    	}
    	fclose(fileD);
-		fclose(fileD2);
+
+
+
 
   }
 

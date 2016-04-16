@@ -11,8 +11,9 @@ int createProcess(char *fileName, char *home)
 {
 
   char lsPath[MAX];
+  pid_t pid;
 
-  int pid = fork();
+  pid = fork();
   if(pid == 0)
   {
     sprintf(lsPath, "%s/listdir", home);
@@ -20,7 +21,12 @@ int createProcess(char *fileName, char *home)
     perror("execlp");
     exit(4);
   }
-  return pid;
+  if (pid > 0){
+    wait(NULL);
+    return 0;
+
+  }
+  return 1;
 }
 
 //Ver como é guardado em string o time_t --> access time
@@ -61,7 +67,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-  sprintf(fileDPath, "%s/fileD.txt", argv[2]);
+  sprintf(fileDPath, "%s/files.txt", argv[2]);
 
   if ((dirp = opendir(argv[1])) == NULL) {
     perror(argv[1]);
