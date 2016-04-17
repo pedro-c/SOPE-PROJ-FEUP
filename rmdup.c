@@ -166,7 +166,7 @@ int compareFiles(char *fileInfo1, char *fileInfo2, char *hardLinksFilePath)
 
 
 
-int createProcess(char *fileName, char *home)
+int firstCreateProcess(char *fileName, char *home)
 {
 	pid_t pid;
 
@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
 
 
 
-	int pid = createProcess(argv[1], cwd);
+	int pid = firstCreateProcess(argv[1], cwd);
 
 	sortFile(fileDPath);
 
