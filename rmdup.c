@@ -10,11 +10,13 @@
 #define FALSE 0
 #define MAX 1024
 
-//ambos são ficheiros regulares;
-//o ambos têm o mesmo nome;
-//o ambos têm as mesmas permissões de acesso;
-//o ambos têm o mesmo conteúdo.
 
+/**
+ * Function to create hard link between to files
+ * @param path Path and name of the first file to link
+ * @param path2 Path and name of the second file to link
+ * @param hardLinksFilePath Path and name of the file to store the info on the hard links
+ */
 int createHardLink(char *path, char *path2, char* hardLinksFilePath){
 
 		if(unlink(path2)==-1){
@@ -40,6 +42,12 @@ int createHardLink(char *path, char *path2, char* hardLinksFilePath){
 	return 0;
 }
 
+/**
+ * Function to compare the content of two files
+ * @param filePath1 Path and Name of the first file
+ * @param filePath2 Path and Name of the second file
+ * @param hardLinksFilePath Path to the file where the hardlinks are saved to be used when the files are equal
+ */
 
 int compareFileContent(char *filePath1, char *filePath2, char* hardLinksFilePath)
 {
@@ -88,76 +96,83 @@ int compareFileContent(char *filePath1, char *filePath2, char* hardLinksFilePath
 	return 0;
 }
 
+/**
+ * Function to compare the content of two files
+ * Uses "strtok" to divide the info in words
+ * @param fileInfo1 All the information needed about the first file
+ * @param fileInfo2 All the information needed about the second file
+ * @param hardLinksFilePath Path to the file where the hardlinks are saved to be used when the files are equal
+ */
+
+
 int compareFiles(char *fileInfo1, char *fileInfo2, char *hardLinksFilePath)
 {
 
-//FILEINFO1
-	//get file name
+//Gets all the information about the first file
+
+	//Gets file Name
 	char fileName1[MAX];
 	char* token1 = strtok(fileInfo1, " ");
 
 	sprintf(fileName1, "%s", token1);
 
 
-	//skip date
+	//Gets the date of the las t modification
 	char date1[MAX];
 	token1 = strtok(NULL, " ");
 	sprintf(date1, "%s", token1);
 
-	//get size
+	//Gets file size
 	char size1[MAX];
 	token1 = strtok(NULL, " ");
 	sprintf(size1, "%s", token1);
 
 
-	//get mode
+	//Gets file's mode(permissions)
 	char m1[MAX];
 	token1 = strtok(NULL, " ");
 	sprintf(m1, "%s", token1);
 
-	//get path
+	//Gets path to file
 	char path1[MAX];
 	token1 = strtok(NULL, " ");
 	sprintf(path1, "%s", token1);
 
-	//FILEINFO2
-		//get file name
-		char fileName2[MAX];
-		char* token2 = strtok(fileInfo2, " ");
-		sprintf(fileName2, "%s", token2);
+//Gets all the information about the second file
 
-		//skip date
-		char date2[MAX];
-		token2 = strtok(NULL, " ");
-		sprintf(date2, "%s", token2);
+	//Gets file Name
+	char fileName2[MAX];
+	char* token2 = strtok(fileInfo2, " ");
+	sprintf(fileName2, "%s", token2);
 
-		//get size
-		char size2[MAX];
-		token2 = strtok(NULL, " ");
-		sprintf(size2, "%s", token2);
+	//Gets the date of last modification
+	char date2[MAX];
+	token2 = strtok(NULL, " ");
+	sprintf(date2, "%s", token2);
 
-		//get mode
-		char m2[MAX];
-		token2 = strtok(NULL, " ");
-		sprintf(m2, "%s", token2);
+	//Gets file size
+	char size2[MAX];
+	token2 = strtok(NULL, " ");
+	sprintf(size2, "%s", token2);
+	
+	//Gets file's mode(permissions)
+	char m2[MAX];
+	token2 = strtok(NULL, " ");
+	sprintf(m2, "%s", token2);
 
-		//get path
-		char path2[MAX];
-		token2 = strtok(NULL, " ");
-		sprintf(path2, "%s", token2);
-
-		//for debuging
-		//printf("%s %s %s %s\n", fileName1, size1, m1, path1 );
-		//printf("%s %s %s %s\n", fileName2, size2, m2, path2 );
-
-
-		if(strcmp(fileName1, fileName2) != 0)
-			return 0;
-		if(strcmp(size1, size2) != 0)
-			return 0;
-		if(strcmp(m1, m2) != 0)
-		  return 0;
-
+	//Gets path to file
+	char path2[MAX];
+	token2 = strtok(NULL, " ");
+	sprintf(path2, "%s", token2);
+	
+//Compares the information of the two files
+//Dates of the last modification are not used
+	if(strcmp(fileName1, fileName2) != 0)
+		return 0;
+	if(strcmp(size1, size2) != 0)
+		return 0;
+	if(strcmp(m1, m2) != 0)
+	  return 0;
 
 	return compareFileContent(path1, path2, hardLinksFilePath);
 
@@ -165,6 +180,13 @@ int compareFiles(char *fileInfo1, char *fileInfo2, char *hardLinksFilePath)
 
 
 
+
+/**
+ * Function to create a the first new process
+ * Executes "listdir" with the directory provided
+ * @param filename Name and path of the new directory
+ * @param home Directory where "listdir" is located
+ */
 
 int firstCreateProcess(char *fileName, char *home)
 {
@@ -187,75 +209,111 @@ int firstCreateProcess(char *fileName, char *home)
   return 1;
 }
 
+/**
+ * Function to compare two strings
+ */
+
 int compare (const char *string, const char *string2)
 {
   return ( string>string2 );
 }
 
 
-int sortFile(char *fileDPath){
-	pid_t pid;
+/**
+ * Function to sort a file into alphabetical order
+ * @param fileDPath Path and Name of the file to sort 
+ */
 
+int sortFile(char *fileDPath){
+	
+  pid_t pid;
+
+//Creates a new process which will make a call to "sort"
   pid = fork();
+  
+  //If child, will call sort
 	if(pid == 0)
   {
+  		//Opens the intended file
 		int file = open(fileDPath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-
+		
+		//Used to make the output of "sort" go to a file and not to the console
 		dup2(file,1);
+		
+		
 		close(file);
+		
+		//Executes "sort" from the shell to sort the file
 		execlp( "sort", "sort", "files.txt", NULL);
 
   }
-	if (pid > 0){
-		wait(NULL);
-		return 0;
-
-	}
+  //If father, will wait for child and then wrap up
+  if (pid > 0){
+	wait(NULL);
+	return 0;
+  }
   return 1;
 
 }
 
 
-int main(int argc, char *argv[]) {
+/**
+ * Main function
+ * Expects a directory as the first and only argument
+ */
 
+int main(int argc, char *argv[]) {
+	
+	//Checks if the number of arguments is valid
+	if (argc != 2) {
+    		fprintf(stderr, "Invalid Arguments");
+    		exit(1);
+  	}
+
+	//Creates memory space for the current working directory to be used later
 	char cwd[MAX];
+	
+	//Creates memory space to store the path and name of the file which will contain all the information on the other files
 	char fileDPath[MAX];
+	
+	//Creates memory space to store the path and name of the file which will contain all the information on the hardlinks
 	char hardLinksFilePath[MAX];
+	
+	//Creates memory space for various buffers to be used later
 	char buff[MAX];
 	char buff2[MAX];
 	char line[MAX];
 	char line2[MAX];
+	
+	//Creates a counter for later usage
 	int counter=0;
 
-	//Gets current directory for later usage
+	//Gets current working directory (checks if successful)
 	if(getcwd(cwd, sizeof(cwd)) == NULL)
 	{
 		perror("Getting CWD");
 		exit(1);
 	}
+	
+	//Stores name of the file to contain the info on other files
 	sprintf(fileDPath, "%s/files.txt", cwd);
+	
+	//Stores name of the file to contain the info on hard links
 	sprintf(hardLinksFilePath, "%s/hlinks.txt", argv[1]);
 
-	//Create new file to store info
+	//Create new empty file to store info
 	FILE* fileD = fopen(fileDPath, "w");
 	fclose(fileD);
 
-	//Create new file to store Hard Links
+	//Create new empty file to store Hard Links and prepares it
 	FILE* hardLinksFile = fopen(hardLinksFilePath, "w");
 	fprintf(hardLinksFile,"Hardlink ----> Original\n");
 	fclose(hardLinksFile);
 
-
-  if (argc != 2) {
-    fprintf(stderr, "Invalid Arguments");
-    exit(1);
-  }
-
-
-
-
+	//Creates a new process to start running through all the directories
 	int pid = firstCreateProcess(argv[1], cwd);
 
+	//
 	sortFile(fileDPath);
 
   if(pid==0)
