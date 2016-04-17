@@ -310,31 +310,37 @@ int main(int argc, char *argv[]) {
 	fprintf(hardLinksFile,"Hardlink ----> Original\n");
 	fclose(hardLinksFile);
 
-	//Creates a new process to start running through all the directories
-	int pid = firstCreateProcess(argv[1], cwd);
 
-	//
-	sortFile(fileDPath);
+	
 
-  if(pid==0)
+//Creates a new process to start running through all the directories
+  if(firstCreateProcess(argv[1], cwd)==0)
   {
-		FILE *fileD;
-
-		fileD = fopen (fileDPath, "r");
-
-		while(fgets(buff, MAX, (FILE*)fileD) != NULL)
+  	//Sorts the list of files by name, necessary for a proper making of hard links
+	sortFile(fileDPath);
+	
+	//Opens the file with files' info
+	FILE *fileD;
+	fileD = fopen (fileDPath, "r");
+	
+	//Reads all the lines, which one containing info from one file	
+	while(fgets(buff, MAX, (FILE*)fileD) != NULL)
    	{
+   			//Opens the file with files' info
 			FILE *fileD2;
 			fileD2 = fopen (fileDPath, "r");
 			int i=0;
-
+			
+			//Skips the files that have already been processed
 			for(i=0; i< counter; i++){
 				fgets(buff, MAX, (FILE*)fileD);
 			}
 			counter=0;
 
+			//Reads all the lines, which one containing info from one file	
 			while(fgets(buff2, MAX, (FILE*)fileD2) != NULL)
 	   	{
+	   			//Stores info from the buff to a string
 				sprintf(line, "%s", buff);
 				sprintf(line2, "%s", buff2);
 					if (strcmp(line,line2) != 0){
