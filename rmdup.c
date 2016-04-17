@@ -269,22 +269,19 @@ int main(int argc, char *argv[]) {
 			FILE *fileD2;
 			fileD2 = fopen (fileDPath, "r");
 			int i=0;
+
 			for(i=0; i< counter; i++){
 				fgets(buff, MAX, (FILE*)fileD);
 			}
+			counter=0;
 
 			while(fgets(buff2, MAX, (FILE*)fileD2) != NULL)
 	   	{
 				sprintf(line, "%s", buff);
 				sprintf(line2, "%s", buff2);
-				printf("1 : %s", line );
-				printf("2 : %s", line2 );
 					if (strcmp(line,line2) != 0){
 						if(compareFiles(line2, line, hardLinksFilePath)==1){
 							counter++;
-							printf("Iguais!\n");
-						}else{
-							printf("Diferentes!\n");
 						}
 					}
 
