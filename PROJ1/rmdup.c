@@ -154,7 +154,7 @@ int compareFiles(char *fileInfo1, char *fileInfo2, char *hardLinksFilePath)
 	char size2[MAX];
 	token2 = strtok(NULL, " ");
 	sprintf(size2, "%s", token2);
-	
+
 	//Gets file's mode(permissions)
 	char m2[MAX];
 	token2 = strtok(NULL, " ");
@@ -164,7 +164,7 @@ int compareFiles(char *fileInfo1, char *fileInfo2, char *hardLinksFilePath)
 	char path2[MAX];
 	token2 = strtok(NULL, " ");
 	sprintf(path2, "%s", token2);
-	
+
 //Compares the information of the two files
 //Dates of the last modification are not used
 	if(strcmp(fileName1, fileName2) != 0)
@@ -210,39 +210,35 @@ int firstCreateProcess(char *fileName, char *home)
 }
 
 /**
- * Function to compare two strings
+ * Function to compare two strings (only called to compare full digit strings)
  */
 
-int compare (const char *string, const char *string2)
-{
-  return ( string>string2 );
-}
 
 
 /**
  * Function to sort a file into alphabetical order
- * @param fileDPath Path and Name of the file to sort 
+ * @param fileDPath Path and Name of the file to sort
  */
 
 int sortFile(char *fileDPath){
-	
+
   pid_t pid;
 
 //Creates a new process which will make a call to "sort"
   pid = fork();
-  
+
   //If child, will call sort
 	if(pid == 0)
   {
   		//Opens the intended file
 		int file = open(fileDPath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-		
+
 		//Used to make the output of "sort" go to a file and not to the console
 		dup2(file,1);
-		
-		
+
+
 		close(file);
-		
+
 		//Executes "sort" from the shell to sort the file
 		execlp( "sort", "sort", "files.txt", NULL);
 
@@ -263,7 +259,7 @@ int sortFile(char *fileDPath){
  */
 
 int main(int argc, char *argv[]) {
-	
+
 	//Checks if the number of arguments is valid
 	if (argc != 2) {
     		fprintf(stderr, "Invalid Arguments");
@@ -272,19 +268,19 @@ int main(int argc, char *argv[]) {
 
 	//Creates memory space for the current working directory to be used later
 	char cwd[MAX];
-	
+
 	//Creates memory space to store the path and name of the file which will contain all the information on the other files
 	char fileDPath[MAX];
-	
+
 	//Creates memory space to store the path and name of the file which will contain all the information on the hardlinks
 	char hardLinksFilePath[MAX];
-	
+
 	//Creates memory space for various buffers to be used later
 	char buff[MAX];
 	char buff2[MAX];
 	char line[MAX];
 	char line2[MAX];
-	
+
 	//Creates a counter for later usage
 	int counter=0;
 
@@ -294,10 +290,10 @@ int main(int argc, char *argv[]) {
 		perror("Getting CWD");
 		exit(1);
 	}
-	
+
 	//Stores name of the file to contain the info on other files
 	sprintf(fileDPath, "%s/files.txt", cwd);
-	
+
 	//Stores name of the file to contain the info on hard links
 	sprintf(hardLinksFilePath, "%s/hlinks.txt", argv[1]);
 
@@ -311,38 +307,40 @@ int main(int argc, char *argv[]) {
 	fclose(hardLinksFile);
 
 
-	
+
 
 //Creates a new process to start running through all the directories
   if(firstCreateProcess(argv[1], cwd)==0)
   {
-  	//Sorts the list of files by name, necessary for a proper making of hard links
+  	//Sorts the list of files by name, and by date
 	sortFile(fileDPath);
-	
+
 	//Opens the file with files' info
 	FILE *fileD;
 	fileD = fopen (fileDPath, "r");
-	
-	//Reads all the lines, which one containing info from one file	
+
+	//Reads all the lines, each one containing info from one file
 	while(fgets(buff, MAX, (FILE*)fileD) != NULL)
    	{
-   			//Opens the file with files' info
+   		//Opens the file with files' info
 			FILE *fileD2;
 			fileD2 = fopen (fileDPath, "r");
 			int i=0;
-			
+
 			//Skips the files that have already been processed
 			for(i=0; i< counter; i++){
 				fgets(buff, MAX, (FILE*)fileD);
 			}
 			counter=0;
 
-			//Reads all the lines, which one containing info from one file	
+			//Reads all the lines, which one containing info from one file
 			while(fgets(buff2, MAX, (FILE*)fileD2) != NULL)
 	   	{
-	   			//Stores info from the buff to a string
+	   		//Stores info from the buff to a string
 				sprintf(line, "%s", buff);
 				sprintf(line2, "%s", buff2);
+
+					//Doesnt allow to compare the file to itself
 					if (strcmp(line,line2) != 0){
 						if(compareFiles(line2, line, hardLinksFilePath)==1){
 							counter++;
@@ -353,9 +351,6 @@ int main(int argc, char *argv[]) {
 			fclose(fileD2);
    	}
    	fclose(fileD);
-
-
-
 
   }
 

@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <sys/wait.h>
 #define MAX 512
 
 /**
@@ -37,12 +38,7 @@ int createProcess(char *fileName, char *home)
 		perror("execlp");
 		exit(4);
 	}
-	//If father, waits for child to end
-	if (pid > 0){
-		wait(NULL);
-		return 0;
 
-	}
 	return 1;
 }
 
@@ -197,6 +193,7 @@ int main(int argc, char *argv[])
 			saveToFile(fileDPath, filePath ,direntp->d_name, stat_buf);
 		}
 	}
+	wait(NULL);
 
 	//All done, closes directory
 	closedir(dirp);
