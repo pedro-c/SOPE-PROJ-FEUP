@@ -25,9 +25,12 @@ int main(argc, argv[]){
     tGenerator = argv[1];
     uClock = argv[2];
     
-    //TODO
+    
     //Creates FIFO in write mode
     
+    int fd;
+    mkfifo("generatorFifo", 0660);
+    if((fd = open("generatorFifo", O_WRONLY) != -1;
     
     //Sets up a random number generator seed
     srand(time(NULL));
@@ -66,7 +69,7 @@ int main(argc, argv[]){
             sleepTime = 2 * uClock;
         }
         
-        sleep(sleepTime);
+        sleep(sleepTime*1000);
         
         //Create new car
         
