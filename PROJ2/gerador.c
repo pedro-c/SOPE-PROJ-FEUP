@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
+#include <string.h>
 #define MAX 512
 
 int tGenerator, uClock, id=1;
@@ -29,7 +30,10 @@ int nDigits(int n)
 
 int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida, char* obs)
 {
-    FILE* log = fopen("gerador.log", "a");
+    FILE* log = fopen("gerador.log", "w");
+    
+    fprintf(log, "Hello\n");
+    /*
     
     int nSpaces = 8 - nDigits(startTime);
     
@@ -74,8 +78,18 @@ int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida,
     fprintf(log, " ; ");
     fprintf(log, obs);
     fprintf(log, "\n");
-    
+    */
     return 0;
+}
+
+void sleepTicks(numberOfTicks){
+    
+    clock_t start, end;
+    start = clock();
+    do{
+       
+        end = clock();       
+    }while((end-start) < numberOfTicks);
 }
 
 void *lifeCycle(void *car){
@@ -93,6 +107,8 @@ void *lifeCycle(void *car){
     
     sprintf(obs, "TEMP");    
     printToLog(start, idCar, dest, parkingTime, tVida, obs);
+    
+    printf("thread finished\n");
        
 }
 
@@ -110,14 +126,18 @@ int main(int argc, char *argv[]){
     }
     
     //Possivelmente testar se os argumentos indicados sao inteiros
-    tGenerator = argv[1];
-    uClock = argv[2];
-    
+    tGenerator = atoi(argv[1]);
+    uClock = atoi(argv[2]);
+   
+   printf("tGenerator: %d\n uClock: %d\n", tGenerator, uClock);
+   
+   
     
     //Create new empty file to store info
 	FILE* log = fopen("gerador.log", "w");
     fprintf(log, "t(ticks) ; id_viat ; destino ; t_estac ; t_vida  ; observs\n");
-	fclose(log);
+    
+    fclose(log);
     
     //Sets up a random number generator seed
     srand(time(NULL));
@@ -131,13 +151,15 @@ int main(int argc, char *argv[]){
     int counter = 0;
     
    
-    clock_t start, current;
-    start = clock();
+    time_t start, current;
+    time(&start);
    
     do{ 
  
         
         //sleeps for some time before creating new car
+         
+        printf("Starting rands\n"); 
          
         randSleep = rand() % 10;
         
@@ -157,7 +179,10 @@ int main(int argc, char *argv[]){
             sleepTime = 2 * uClock;
         }
         
-        sleep(sleepTime);
+        printf("Sleeping for %d ticks\n", sleepTime);
+
+        
+        sleepTicks(sleepTime);
         
         //Create new car
         
@@ -194,6 +219,7 @@ int main(int argc, char *argv[]){
         car.idCar = idCar;
         car.dest = entryFifoName;
         car.parkingTime = parkingTime;
+        printf("creating thread\n");
         
         if((pthread_create(&t, NULL, &lifeCycle, (void *) &car)) != 0){
             printf("Error creating new car thread\n");
@@ -205,11 +231,13 @@ int main(int argc, char *argv[]){
         //TODO
         //Store information in generator.log
         
-        current = clock();
-    } while(current - start < tGenerator);
+        time(&current);
+    } while(difftime(current,start) < tGenerator);
     
    
     printf("Generator finished its work!\n");
+    
+    
     
     return 0;
     //TODO
