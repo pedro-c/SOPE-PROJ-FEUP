@@ -1,16 +1,104 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <time.h>
 #define MAX 512
 
 int tGenerator, uClock, id=1;
 
-int lifeCycle(int idCar, char dest, int parkingTime){
+struct carInfo {
+    int idCar;
+    char dest;
+    int parkingTime;
+};
+
+int nDigits(int n)
+{
+    int nDig = 0;
     
+    while(n > 0)
+    {
+        n /= 10;
+        nDig++;
+    }
+    
+    return nDig;
 }
 
+int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida, char* obs)
+{
+    FILE* log = fopen("gerador.log", "a");
+    
+    int nSpaces = 8 - nDigits(startTime);
+    
+    for(; nSpaces > 0; --nSpaces)
+    {
+        fprintf(log, " ");
+    }
+    
+    fprintf(log, startTime);
+    fprintf(log, " ; ");
+    
+    nSpaces = 8 - nDigits(idCar);
+    
+    for(; nSpaces > 0; --nSpaces)
+    {
+        fprintf(log, " ");
+    }
+    
+    fprintf(log, idCar);
+    fprintf(log, " ;        ");
+    fprintf(log, dest);
+    fprintf(log, " ; ");
+    
+    nSpaces = 8 - nDigits(parkingTime);
+    
+    for(; nSpaces > 0; --nSpaces)
+    {
+        fprintf(log, " ");
+    }
+    
+    fprintf(log, " ; ");
+    
+    nSpaces = 8 - nDigits(tVida);
+    
+    for(; nSpaces > 0; --nSpaces)
+    {
+        fprintf(log, " ");
+    }
+    
+    fprintf(log, tVida);
+    
+    fprintf(log, " ; ");
+    fprintf(log, obs);
+    fprintf(log, "\n");
+    
+    return 0;
+}
 
-int main(argc, argv[]){
+void *lifeCycle(void *car){
+    clock_t start, end; 
+    start = clock();
+    
+    struct carInfo *info = (struct carInfo *) car;
+    
+    
+    int idCar = info->idCar;
+    int parkingTime = info->parkingTime;
+    char dest = info->dest;
+    int tVida = -1;
+    char obs[MAX];
+    
+    sprintf(obs, "TEMP");    
+    printToLog(start, idCar, dest, parkingTime, tVida, obs);
+       
+}
+
+//TODO change all exit's 'magic' numbers
+
+int main(int argc, char *argv[]){
     
     
     //Checks for number of arguments
@@ -26,11 +114,10 @@ int main(argc, argv[]){
     uClock = argv[2];
     
     
-    //Creates FIFO in write mode
-    
-    int fd;
-    mkfifo("generatorFifo", 0660);
-    if((fd = open("generatorFifo", O_WRONLY) != -1;
+    //Create new empty file to store info
+	FILE* log = fopen("gerador.log", "w");
+    fprintf(log, "t(ticks) ; id_viat ; destino ; t_estac ; t_vida  ; observs\n");
+	fclose(log);
     
     //Sets up a random number generator seed
     srand(time(NULL));
@@ -44,10 +131,11 @@ int main(argc, argv[]){
     int counter = 0;
     
    
-    time_t start, current;
-    time(&start);
+    clock_t start, current;
+    start = clock();
    
     do{ 
+ 
         
         //sleeps for some time before creating new car
          
@@ -60,7 +148,7 @@ int main(argc, argv[]){
         }
         
         else if(randSleep <= 4){
-            sleepTime = 0; //Perguntar ao prof se 0 multiplos é 0 segundos
+            sleepTime = 0;
         }
         else if(randSleep <= 7){
             sleepTime = uClock;
@@ -69,7 +157,7 @@ int main(argc, argv[]){
             sleepTime = 2 * uClock;
         }
         
-        sleep(sleepTime*1000);
+        sleep(sleepTime);
         
         //Create new car
         
@@ -98,20 +186,33 @@ int main(argc, argv[]){
         }
         
         randParkingMultiple = rand() % 10 + 1;
-        parkingTime = randParkingMultiple * uRelogio;
+        parkingTime = randParkingMultiple * uClock;
         
+        pthread_t t;
+        
+        struct carInfo car;
+        car.idCar = idCar;
+        car.dest = entryFifoName;
+        car.parkingTime = parkingTime;
+        
+        if((pthread_create(&t, NULL, &lifeCycle, (void *) &car)) != 0){
+            printf("Error creating new car thread\n");
+            perror("Creating thread");
+            exit(4);
+        }
+        
+                
         //TODO
-        //Launch thread for each new car
         //Store information in generator.log
         
-        time(%current);
-    } while(difftime(current, start) < tGenerator);
+        current = clock();
+    } while(current - start < tGenerator);
     
    
     printf("Generator finished its work!\n");
     
+    return 0;
     //TODO
-    //Close FIFO
     //Show log
     
     
