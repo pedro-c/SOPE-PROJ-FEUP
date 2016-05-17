@@ -9,6 +9,9 @@
 
 int tGenerator, uClock, id=1;
 
+
+    FILE* gLog;
+
 struct carInfo {
     int idCar;
     char dest;
@@ -30,55 +33,48 @@ int nDigits(int n)
 
 int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida, char* obs)
 {
-    FILE* log = fopen("gerador.log", "w");
-    
-    fprintf(log, "Hello\n");
-    /*
+    gLog = fopen("gerador.log", "a");
     
     int nSpaces = 8 - nDigits(startTime);
     
     for(; nSpaces > 0; --nSpaces)
     {
-        fprintf(log, " ");
+        fprintf(gLog, " ");
     }
-    
-    fprintf(log, startTime);
-    fprintf(log, " ; ");
-    
+    fprintf(gLog, "%d ;", startTime);
+
     nSpaces = 8 - nDigits(idCar);
-    
     for(; nSpaces > 0; --nSpaces)
     {
-        fprintf(log, " ");
+       fprintf(gLog, " ");
     }
-    
-    fprintf(log, idCar);
-    fprintf(log, " ;        ");
-    fprintf(log, dest);
-    fprintf(log, " ; ");
-    
+    fprintf(gLog, "%d ;       %c ;", idCar, dest);
+
     nSpaces = 8 - nDigits(parkingTime);
-    
     for(; nSpaces > 0; --nSpaces)
     {
-        fprintf(log, " ");
+       fprintf(gLog, " ");
     }
-    
-    fprintf(log, " ; ");
-    
-    nSpaces = 8 - nDigits(tVida);
-    
-    for(; nSpaces > 0; --nSpaces)
+   fprintf(gLog, "%d ;", parkingTime);
+
+    if(tVida == -1)
     {
-        fprintf(log, " ");
+	fprintf(gLog, "      ? ; ");
     }
-    
-    fprintf(log, tVida);
-    
-    fprintf(log, " ; ");
-    fprintf(log, obs);
-    fprintf(log, "\n");
-    */
+    else
+    {
+	nSpaces = 8 - nDigits(tVida);
+   	for(; nSpaces > 0; --nSpaces)
+   	 {
+    	    fprintf(gLog, " ");
+   	 }
+	fprintf(gLog, "%d ; ", tVida);
+    }
+
+    fprintf(gLog, "%s\n", obs);
+
+
+    fclose(gLog);
     return 0;
 }
 
@@ -101,14 +97,14 @@ void *lifeCycle(void *car){
     
     int idCar = info->idCar;
     int parkingTime = info->parkingTime;
-    char dest = info->dest;
+    char dest = info->dest; 
     int tVida = -1;
     char obs[MAX];
     
     sprintf(obs, "TEMP");    
     printToLog(start, idCar, dest, parkingTime, tVida, obs);
-    
-    printf("thread finished\n");
+
+    return;
        
 }
 
@@ -129,15 +125,12 @@ int main(int argc, char *argv[]){
     tGenerator = atoi(argv[1]);
     uClock = atoi(argv[2]);
    
-   printf("tGenerator: %d\n uClock: %d\n", tGenerator, uClock);
    
-   
-    
     //Create new empty file to store info
-	FILE* log = fopen("gerador.log", "w");
-    fprintf(log, "t(ticks) ; id_viat ; destino ; t_estac ; t_vida  ; observs\n");
+    gLog = fopen("gerador.log", "w");
+    fprintf(gLog, "t(ticks) ; id_viat ; destino ; t_estac ; t_vida ; observs\n");   
+    fclose(gLog);
     
-    fclose(log);
     
     //Sets up a random number generator seed
     srand(time(NULL));
@@ -155,8 +148,7 @@ int main(int argc, char *argv[]){
     time(&start);
    
     do{ 
- 
-        
+   
         //sleeps for some time before creating new car
          
         printf("Starting rands\n"); 
@@ -219,29 +211,27 @@ int main(int argc, char *argv[]){
         car.idCar = idCar;
         car.dest = entryFifoName;
         car.parkingTime = parkingTime;
-        printf("creating thread\n");
         
         if((pthread_create(&t, NULL, &lifeCycle, (void *) &car)) != 0){
             printf("Error creating new car thread\n");
             perror("Creating thread");
             exit(4);
         }
-        
-                
-        //TODO
-        //Store information in generator.log
+      
         
         time(&current);
     } while(difftime(current,start) < tGenerator);
     
-   
-    printf("Generator finished its work!\n");
+
+    printf("Generator finished successfully!\n");
+
+ 
+    //TODO
+    //SHOW LOG
     
     
     
     return 0;
-    //TODO
-    //Show log
-    
+  
     
 }
