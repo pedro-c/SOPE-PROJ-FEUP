@@ -9,6 +9,9 @@
 
 int tGenerator, uClock, id=1;
 FILE* gLog;
+pthread_mutex_t slots_lock;
+
+
 
 struct carInfo {
     int idCar;
@@ -31,8 +34,6 @@ int nDigits(int n)
 
 int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida, char* obs)
 {
-    
-    
     int nSpaces = 10 - nDigits(startTime);
     
     for(; nSpaces > 0; --nSpaces)
@@ -111,7 +112,6 @@ void *lifeCycle(void *car){
 //TODO change all exit's 'magic' numbers
 
 int main(int argc, char *argv[]){
-    
     
     //Checks for number of arguments
     if(argc != 3)
