@@ -102,6 +102,8 @@ void *lifeCycle(void *car){
     
     sprintf(obs, "TEMP");    
     printToLog(start, idCar, dest, parkingTime, tVida, obs);
+    
+    
     return;
        
 }
@@ -204,17 +206,22 @@ int main(int argc, char *argv[]){
         parkingTime = randParkingMultiple * uClock;
         
         pthread_t t;
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
         
         struct carInfo car;
         car.idCar = idCar;
         car.dest = entryFifoName;
         car.parkingTime = parkingTime;
         
-        if((pthread_create(&t, NULL, &lifeCycle, (void *) &car)) != 0){
+        if((pthread_create(&t, &attr, &lifeCycle, (void *) &car)) != 0){
             printf("Error creating new car thread\n");
             perror("Creating thread");
             exit(4);
         }
+        
       
         
         time(&current);
