@@ -9,7 +9,8 @@
 
 int tGenerator, uClock, id=1;
 FILE* gLog;
-pthread_mutex_t slots_lock;
+pthread_mutex_t idLock = PTHREAD_MUTEX_INITIALIZER; 
+pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER; 
 
 
 
@@ -100,14 +101,12 @@ void *lifeCycle(void *car){
     char obs[MAX];
     
     
-    
+    pthread_mutex_lock(&logLock); //bloqueia a escrita no ficheiro para a thread atual 
     sprintf(obs, "TEMP");    
     printToLog(start, idCar, dest, parkingTime, tVida, obs);
+    pthread_mutex_unlock(&logLock); //liberta a escrita no ficheiro
     
-    
-    return;
-       
-}
+   }
 
 //TODO change all exit's 'magic' numbers
 
@@ -124,6 +123,18 @@ int main(int argc, char *argv[]){
     //Possivelmente testar se os argumentos indicados sao inteiros
     tGenerator = atoi(argv[1]);
     uClock = atoi(argv[2]);
+    
+    //checks if inputs are valid (more than zero)
+    if(tGenerator < 1){
+        printf("error: tGenerator < 1");
+        perror("tGenerator must be bigger than 0");
+        exit(1);
+    } 
+    if(uClock < 1){
+        printf("error: uClock < 1");
+        perror("uClock must be bigger than 0");
+        exit(1);
+    } 
    
    
     //Create new empty file to store info
@@ -140,7 +151,6 @@ int main(int argc, char *argv[]){
     int randEntry, randSleep, randParkingMultiple;
     int parkingTime, sleepTime;
     int idCar;
-    
     int counter = 0;
     
    
@@ -177,9 +187,6 @@ int main(int argc, char *argv[]){
         sleepTicks(sleepTime);
         
         //Create new car
-        
-        idCar = id++;
-        
         char entryFifoName;
         randEntry = rand() % 4;
         
@@ -210,7 +217,8 @@ int main(int argc, char *argv[]){
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-        
+        pthread_mutex_lock(&idLock); //bloqueia a criação de novas threads até que a anteriormente criada acabe
+        idCar = id++; 
         struct carInfo car;
         car.idCar = idCar;
         car.dest = entryFifoName;
@@ -221,8 +229,8 @@ int main(int argc, char *argv[]){
             perror("Creating thread");
             exit(4);
         }
-        
-      
+        pthread_mutex_unlock(&idLock); //permite que uma nova thread seja criada no main
+         
         
         time(&current);
     } while(difftime(current,start) < tGenerator);
