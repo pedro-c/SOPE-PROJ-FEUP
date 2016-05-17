@@ -8,9 +8,7 @@
 #define MAX 512
 
 int tGenerator, uClock, id=1;
-
-
-    FILE* gLog;
+FILE* gLog;
 
 struct carInfo {
     int idCar;
@@ -33,9 +31,9 @@ int nDigits(int n)
 
 int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida, char* obs)
 {
-    gLog = fopen("gerador.log", "a");
     
-    int nSpaces = 8 - nDigits(startTime);
+    
+    int nSpaces = 10 - nDigits(startTime);
     
     for(; nSpaces > 0; --nSpaces)
     {
@@ -43,14 +41,14 @@ int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida,
     }
     fprintf(gLog, "%d ;", startTime);
 
-    nSpaces = 8 - nDigits(idCar);
+    nSpaces = 10 - nDigits(idCar);
     for(; nSpaces > 0; --nSpaces)
     {
        fprintf(gLog, " ");
     }
-    fprintf(gLog, "%d ;       %c ;", idCar, dest);
+    fprintf(gLog, "%d ;         %c ;", idCar, dest);
 
-    nSpaces = 8 - nDigits(parkingTime);
+    nSpaces = 10 - nDigits(parkingTime);
     for(; nSpaces > 0; --nSpaces)
     {
        fprintf(gLog, " ");
@@ -59,11 +57,11 @@ int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida,
 
     if(tVida == -1)
     {
-	fprintf(gLog, "      ? ; ");
+	fprintf(gLog, "        ? ;   ");
     }
     else
     {
-	nSpaces = 8 - nDigits(tVida);
+	nSpaces = 10 - nDigits(tVida);
    	for(; nSpaces > 0; --nSpaces)
    	 {
     	    fprintf(gLog, " ");
@@ -74,7 +72,6 @@ int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida,
     fprintf(gLog, "%s\n", obs);
 
 
-    fclose(gLog);
     return 0;
 }
 
@@ -101,9 +98,10 @@ void *lifeCycle(void *car){
     int tVida = -1;
     char obs[MAX];
     
+    
+    
     sprintf(obs, "TEMP");    
     printToLog(start, idCar, dest, parkingTime, tVida, obs);
-
     return;
        
 }
@@ -128,8 +126,8 @@ int main(int argc, char *argv[]){
    
     //Create new empty file to store info
     gLog = fopen("gerador.log", "w");
-    fprintf(gLog, "t(ticks) ; id_viat ; destino ; t_estac ; t_vida ; observs\n");   
-    fclose(gLog);
+    fprintf(gLog, "  t(ticks) ;   id_viat ;   destino ;   t_estac ;   t_vida ;   observs\n");   
+    
     
     
     //Sets up a random number generator seed
@@ -229,7 +227,7 @@ int main(int argc, char *argv[]){
     //TODO
     //SHOW LOG
     
-    
+    fclose(gLog);
     
     return 0;
   
