@@ -5,17 +5,77 @@
 #include <pthread.h>
 #include <time.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h> 
 #define MAX 512
 
 int n_lugares, t_abertura;
 
-void *controlador(char identificador){
-        
-        //TODO
-        //Criar fifo proprio ex: 'fifoN'
-        
+struct carAssistInfo {
+    int idCar;
+    int parkingTime;
+};
+
+void *carAssistant(void *car){
     
+    struct carAssistInfo *info = (struct carInfo *) car;
+    int idCar = info->idCar;
+    int parkingTime = info->parkingTime;
+ 
+    char fifoCar[MAX];
     
+    sprintf(fifoCar, "car%d", idCar);
+ 
+    int fd = open(fifoCar, O_WRONLY);
+    
+    int n = write(fd, 1, sizeof(int));
+}
+
+void *controlador(void* identificador){
+        
+        int opened = 1;
+        int n;       
+        char fifoName[MAX];
+        sprintf(fifoName, "fifo%c",* (char *)identificador);
+        int fd=open(fifoName,O_RDONLY); 
+        
+        int idCar, parkingTime;
+        int counter = 500;
+        
+        
+        while(counter > 0){
+            counter--;
+            if((n = read(fd, idCar, sizeof(int)) <= 0){
+                printf("Error reading from fifo in controller %s", fifoName);
+                perror("Reading from fifo");
+                exit(4);
+            }
+
+            
+            if((n = read(fd, parkingTime, sizeof(int)) <= 0){
+                printf("Error reading from fifo in controller %s", fifoName);
+                perror("Reading from fifo");
+                exit(4);
+            }
+            
+            pthread_t t;
+            pthread_attr_t attr;
+            pthread_attr_init(&attr);
+            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        
+            
+            if(idCar == -1){
+                opened = 0;
+            }
+            else
+            {
+                struct carAssistInfo carAssist;
+                car.idCar = idCar;
+                car.parkingTime = parkingTime;
+                pthread_create(t, attr, &carAssistant, (void *) &carAssist );
+            }
+            
+        }
    }
 
 int main(int argc, char *argv[]){
@@ -51,29 +111,48 @@ int main(int argc, char *argv[]){
     //saves the starting time
     time(&start);
     
+    //Create fifos
+    mkfifo("fifoN",0660);
+    mkfifo("fifoS",0660);
+    mkfifo("fifoE",0660);
+    mkfifo("fifoW",0660);
+    
+    //Park opens
+    int fdN = open("fifoN", O_WRONLY);
+    int fdS = open("fifoS", O_WRONLY);
+    int fdE = open("fifoE", O_WRONLY);
+    int fdW = open("fifoW", O_WRONLY);
+    
+    char NN = 'N';
+    char SS = 'S';
+    char EE = 'E';
+    char WW = 'W';
+    
+
+    
     //creates thread 'controlador' N
-        if((pthread_create(&t, &attr, &controlador, 'N')) != 0){
+        if((pthread_create(&t, &attr, &controlador, &NN)) != 0){
             printf("Error creating new 'controlador' thread\n");
             perror("Creating thread");
             exit(4);
         }
         
         //creates thread 'controlador' S
-        if((pthread_create(&t, &attr, &controlador, 'N')) != 0){
+        if((pthread_create(&t, &attr, &controlador, &SS)) != 0){
             printf("Error creating new 'controlador' thread\n");
             perror("Creating thread");
             exit(4);
         }
         
         //creates thread 'controlador' E
-        if((pthread_create(&t, &attr, &controlador, 'N')) != 0){
+        if((pthread_create(&t, &attr, &controlador, &EE)) != 0){
             printf("Error creating new 'controlador' thread\n");
             perror("Creating thread");
             exit(4);
         }
         
         //creates thread 'controlador' W
-        if((pthread_create(&t, &attr, &controlador, 'N')) != 0){
+        if((pthread_create(&t, &attr, &controlador, &WW)) != 0){
             printf("Error creating new 'controlador' thread\n");
             perror("Creating thread");
             exit(4);
@@ -83,13 +162,8 @@ int main(int argc, char *argv[]){
         
         //saves current time
         time(&current);  
-    }while(difftime(current,start) < t_abertura) //compares current time with starting time and checks if it is time to close the park
+    }while(difftime(current,start) < t_abertura); //compares current time with starting time and checks if it is time to close the park
     
-    
-    
-      
-    
-    
-
-
+    //Park closes
+    //Write -1 to fifos  
 }

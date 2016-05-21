@@ -9,9 +9,8 @@
 
 int tGenerator, uClock, id=1;
 FILE* gLog;
-pthread_mutex_t idLock = PTHREAD_MUTEX_INITIALIZER; 
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER; 
-
+pthread_mutex_t idLock = PTHREAD_MUTEX_INITIALIZER;
 
 
 struct carInfo {
@@ -91,6 +90,8 @@ void *lifeCycle(void *car){
     clock_t start, end; 
     start = clock();
     
+    
+    
     struct carInfo *info = (struct carInfo *) car;
     
     
@@ -99,12 +100,49 @@ void *lifeCycle(void *car){
     char dest = info->dest; 
     int tVida = -1;
     char obs[MAX];
-    
+    pthread_mutex_unlock(&idLock); //liberta a edição da struct car no main
     
     pthread_mutex_lock(&logLock); //bloqueia a escrita no ficheiro para a thread atual 
-    sprintf(obs, "TEMP");    
+    
+    char fifoDest[MAX];
+    char fifoCar[MAX];
+    int answer;
+    
+    sprintf(fifoCar, "car%d", idCar);
+    mkfifo(fifoCar, 0660);
+    
+    
+    sprintf(fifoDest, "fifo%c", dest);
+    
+    int fd = open(fifoDest, O_WRONLY);
+    //TODO Check successfullness
+    
+    int n = write(fd, idCar, sizeof(int));
+    
+    n = write(fd, parkingTime, sizeof(int));
+    
+    int fdr = open(fifoCar, O_RDONLY);
+    
+    n = read(fdr, answer, sizeof(int));
+    
+    switch(answer){
+        case 1:
+            sprintf(obs, "entrou");
+            break;
+        case 2:
+            sprintf(obs, "cheio");
+            break;
+        case 3:
+            sprintf(obs, "encerrado");
+            break;
+        default: 
+            break;
+    }
+    
+    
     printToLog(start, idCar, dest, parkingTime, tVida, obs);
     pthread_mutex_unlock(&logLock); //liberta a escrita no ficheiro
+
     
    }
 
@@ -216,8 +254,9 @@ int main(int argc, char *argv[]){
         pthread_attr_t attr;
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-        pthread_mutex_lock(&idLock); //bloqueia a criação de novas threads até que a anteriormente criada acabe
+        
+        pthread_mutex_lock(&idLock); //bloqueia a edição da struct car
+         
         idCar = id++; 
         struct carInfo car;
         car.idCar = idCar;
@@ -229,7 +268,7 @@ int main(int argc, char *argv[]){
             perror("Creating thread");
             exit(4);
         }
-        pthread_mutex_unlock(&idLock); //permite que uma nova thread seja criada no main
+        
          
         
         time(&current);
