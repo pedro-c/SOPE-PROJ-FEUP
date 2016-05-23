@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h> 
+#include <fcntl.h>
 #define MAX 512
 
 int n_lugares, t_abertura;
@@ -45,14 +46,14 @@ void *controlador(void* identificador){
         
         while(counter > 0){
             counter--;
-            if((n = read(fd, idCar, sizeof(int)) <= 0){
+            if((n = read(fd, idCar, sizeof(int)) <= 0)){
                 printf("Error reading from fifo in controller %s", fifoName);
                 perror("Reading from fifo");
                 exit(4);
             }
 
             
-            if((n = read(fd, parkingTime, sizeof(int)) <= 0){
+            if((n = read(fd, parkingTime, sizeof(int)) <= 0)){
                 printf("Error reading from fifo in controller %s", fifoName);
                 perror("Reading from fifo");
                 exit(4);
@@ -70,9 +71,9 @@ void *controlador(void* identificador){
             else
             {
                 struct carAssistInfo carAssist;
-                car.idCar = idCar;
-                car.parkingTime = parkingTime;
-                pthread_create(t, attr, &carAssistant, (void *) &carAssist );
+                carAssist.idCar = idCar;
+                carAssist.parkingTime = parkingTime;
+                pthread_create(&t, &attr, &carAssistant, (void *) &carAssist );
             }
             
         }
@@ -128,6 +129,10 @@ int main(int argc, char *argv[]){
     char EE = 'E';
     char WW = 'W';
     
+    pthread_t t;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     
     //creates thread 'controlador' N

@@ -5,6 +5,9 @@
 #include <pthread.h>
 #include <time.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h> 
+#include <fcntl.h>
 #define MAX 512
 
 int tGenerator, uClock, id=1;
