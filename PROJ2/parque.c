@@ -49,36 +49,35 @@ void *carAssistant(void *car){
 
 	int fdA = open(fifoCar, O_WRONLY);
 	pthread_mutex_lock(&nLugaresLock); 
-	if(n_lugares-- > 0){
+	if(n_lugares> 0){
+		n_lugares--;
 		sprintf(message,"Entrou!");
 		messagelen=strlen(message)+1;
+		
+		write(fdA,message,messagelen);
+		pthread_mutex_unlock(&nLugaresLock);
+		
+		sem_t *semaphore = sem_open(SEM,O_CREAT, 0660,1);
+		
+		sleepTicks(parkingTime);
+		sem_post(semaphore);
+		sem_close(semaphore);
+		
+		pthread_mutex_lock(&nLugaresLock); 
+		n_lugares++;
+		pthread_mutex_unlock(&nLugaresLock);
+		
+		sprintf(message,"Saiu!");
+		write(fdA,message,messagelen);
+		close(fdA);
 	}else{
 		sprintf(message,"Cheio!");
 		messagelen=strlen(message)+1;
+		write(fdA,message,messagelen);
+		pthread_mutex_unlock(&nLugaresLock);
+		close(fdA);
+
 	}
-	
-	write(fdA,message,messagelen);
-	pthread_mutex_unlock(&nLugaresLock);
-	
-	sem_t *semaphore = sem_open(SEM,O_CREAT, 0660,1);
-	
-	sleepTicks(parkingTime);
-	sem_post(semaphore);
-	sem_close(semaphore);
-	
-	
-	
-	pthread_mutex_lock(&nLugaresLock); 
-	n_lugares++;
-	pthread_mutex_unlock(&nLugaresLock);
-	
-	sprintf(message,"Saiu!");
-	write(fdA,message,messagelen);
-	close(fdA);
-	
-	
-	
-	
 	 
 }
 

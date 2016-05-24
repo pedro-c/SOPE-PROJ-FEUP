@@ -163,21 +163,21 @@ void *lifeCycle(void *car){
 	printf("printing to log!\n");
 	printToLog(start, idCar, dest, parkingTime, tVida, str);	
 	pthread_mutex_unlock(&logLock); //liberta a escrita no ficheiro
-	
-	sem_t *semaphore = sem_open(SEM,O_CREAT, 0660,1);
-	sem_wait(semaphore);
+	if(strcmp(str,"Entrou!")==0){
+		sem_t *semaphore = sem_open(SEM,O_CREAT, 0660,1);
+		sem_wait(semaphore);
+			
+		pthread_mutex_lock(&logLock);
+		readline(fdA,str);
+		end = clock();
+		tVida=end-start;
+		printToLog(end, idCar, dest, parkingTime, tVida, str);
+		pthread_mutex_unlock(&logLock);
 		
-	pthread_mutex_lock(&logLock);
-	readline(fdA,str);
-	end = clock();
-	tVida=end-start;
-	printToLog(end, idCar, dest, parkingTime, tVida, str);
-	pthread_mutex_unlock(&logLock);
+		sem_unlink(SEM);
+		close(fdA);
+	}
 	
-	sem_unlink(SEM);
-	close(fdA);
-
-
 }
 
 //TODO change all exit's 'magic' numbers
