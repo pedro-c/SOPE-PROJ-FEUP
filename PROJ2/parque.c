@@ -12,9 +12,12 @@
 #define SEM "/semaf"
 #define MAX 512
 
-int n_lugares, t_abertura, opened;
+int n_lugares, t_abertura, opened, nLug=0;
+
+FILE* pLog;
 
 pthread_mutex_t nLugaresLock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t nLugLock = PTHREAD_MUTEX_INITIALIZER;
 
 struct carAssistInfo {
 	int idCar;
@@ -23,6 +26,42 @@ struct carAssistInfo {
 
 int readline(int fd, char *str);
 
+int nDigits(int n)
+{
+	int nDig = 0;
+
+	while(n > 0)
+	{
+		n /= 10;
+		nDig++;
+	}
+
+	return nDig;
+}
+
+int printToLog (int t, int nlug, int id, char* obs)
+{
+	int nSpaces = 10 - nDigits(t);
+
+	for(; nSpaces > 0; --nSpaces)
+	{
+		fprintf(pLog, " ");
+	}
+	fprintf(pLog, "%d ;", t);
+
+	nSpaces = 10 - nDigits(nlug);
+	for(; nSpaces > 0; --nSpaces)
+	{
+		fprintf(pLog, " ");
+	}
+	fprintf(pLog, "%d ;         %d ;", nlug, id);
+
+
+	fprintf(pLog, "%s\n", obs);
+
+
+	return 0;
+}
 
 void sleepTicks(numberOfTicks){
 
@@ -35,7 +74,7 @@ void sleepTicks(numberOfTicks){
 }
 
 void *carAssistant(void *car){
-
+	clock_t t;
 	printf("Car assistant created\n");
 	struct carAssistInfo *info = (struct carInfo *) car;
 	int idCar = info->idCar;
@@ -50,6 +89,20 @@ void *carAssistant(void *car){
 	int fdA = open(fifoCar, O_WRONLY);
 	pthread_mutex_lock(&nLugaresLock); 
 	if(n_lugares> 0){
+		if(n_lugares == 1){
+			t = clock();
+			pthread_mutex_lock(&nLugLock); 
+			nLug++;
+			printToLog (t, nLug, idCar, "cheio");
+			pthread_mutex_unlock(&nLugLock); 
+		}else{
+			t = clock();
+			pthread_mutex_lock(&nLugLock); 
+			nLug++;
+			printToLog (t, nLug, idCar, "estacionamento");
+			pthread_mutex_unlock(&nLugLock); 
+		}
+		
 		n_lugares--;
 		sprintf(message,"Entrou!");
 		messagelen=strlen(message)+1;
@@ -66,11 +119,21 @@ void *carAssistant(void *car){
 		pthread_mutex_lock(&nLugaresLock); 
 		n_lugares++;
 		pthread_mutex_unlock(&nLugaresLock);
+		pthread_mutex_lock(&nLugLock); 
+		t = clock();
+		nLug--;
+		if(opened==0){
+			printToLog (t, nLug, idCar, "encerrado");
+		}else{
+			printToLog (t, nLug, idCar, "saida");
+		}
+		pthread_mutex_unlock(&nLugLock); 
 		
 		sprintf(message,"Saiu!");
 		write(fdA,message,messagelen);
 		close(fdA);
 	}else{
+		
 		sprintf(message,"Cheio!");
 		messagelen=strlen(message)+1;
 		write(fdA,message,messagelen);
@@ -188,6 +251,10 @@ int main(int argc, char *argv[]){
 	char SS = 'S';
 	char EE = 'E';
 	char WW = 'W';
+	
+	pLog = fopen("parque.log", "w");
+	fprintf(pLog, "  t(ticks) ;   nLug    ;   id_viat ;   observs\n");
+
 
 	pthread_t t;
 	pthread_attr_t attr;
@@ -227,11 +294,16 @@ int main(int argc, char *argv[]){
 		//saves current time
 		time(&current);
 	}while(difftime(current,start) < t_abertura); //compares current time with starting time and checks if it is time to close the park
-
+	
+	
 	unlink("fifoN");
 	unlink("fifoS");
 	unlink("fifoE");
 	unlink("fifoW");
+	
+	
+
+	pthread_exit(NULL);
 
 	return 0;
 
