@@ -8,9 +8,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <semaphore.h>
+#define SEM "/semaf"
 #define MAX 512
 
-int n_lugares, t_abertura;
+int n_lugares, t_abertura, opened;
+
+pthread_mutex_t nLugaresLock = PTHREAD_MUTEX_INITIALIZER;
 
 struct carAssistInfo {
 	int idCar;
@@ -19,19 +23,63 @@ struct carAssistInfo {
 
 int readline(int fd, char *str);
 
+
+void sleepTicks(numberOfTicks){
+
+	clock_t start, end;
+	start = clock();
+	do{
+
+		end = clock();
+	}while((end-start) < numberOfTicks);
+}
+
 void *carAssistant(void *car){
 
+	printf("Car assistant created\n");
 	struct carAssistInfo *info = (struct carInfo *) car;
 	int idCar = info->idCar;
 	int parkingTime = info->parkingTime;
-
-	char fifoCar[MAX];
+	int messagelen;
+	char message[100];
+	char * fifoCar = malloc (sizeof (char));
 
 	sprintf(fifoCar, "car%d", idCar);
+	mkfifo(fifoCar,0660);	
 
-	int fd = open(fifoCar, O_WRONLY);
-
-	int n = write(fd, 1, sizeof(int));
+	int fdA = open(fifoCar, O_WRONLY);
+	pthread_mutex_lock(&nLugaresLock); 
+	if(n_lugares-- > 0){
+		sprintf(message,"Entrou!");
+		messagelen=strlen(message)+1;
+	}else{
+		sprintf(message,"Cheio!");
+		messagelen=strlen(message)+1;
+	}
+	
+	write(fdA,message,messagelen);
+	pthread_mutex_unlock(&nLugaresLock);
+	
+	sem_t *semaphore = sem_open(SEM,O_CREAT, 0660,1);
+	
+	sleepTicks(parkingTime);
+	sem_post(semaphore);
+	sem_close(semaphore);
+	
+	
+	
+	pthread_mutex_lock(&nLugaresLock); 
+	n_lugares++;
+	pthread_mutex_unlock(&nLugaresLock);
+	
+	sprintf(message,"Saiu!");
+	write(fdA,message,messagelen);
+	close(fdA);
+	
+	
+	
+	
+	 
 }
 
 void *controlador(void* identificador){
@@ -70,9 +118,9 @@ void *controlador(void* identificador){
 
 		}
 		close(fd);
-	}
+	
 
-	/*
+	
 		pthread_t t;
 		pthread_attr_t attr;
 		pthread_attr_init(&attr);
@@ -89,7 +137,7 @@ void *controlador(void* identificador){
 			carAssist.parkingTime = parkingTime;
 			pthread_create(&t, &attr, &carAssistant, (void *) &carAssist );
 		}
-	 */
+	 }
 }
 
 int main(int argc, char *argv[]){

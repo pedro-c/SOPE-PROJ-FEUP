@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <fcntl.h>
+#include <semaphore.h>
+#define SEM "/semaf"
 #define MAX 512
 
 int tGenerator, uClock, id=1;
@@ -16,6 +18,7 @@ FILE* gLog;
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t idLock = PTHREAD_MUTEX_INITIALIZER;
 
+int readline(int fd, char *str);
 
 struct carInfo {
 	int idCar;
@@ -95,11 +98,11 @@ void *lifeCycle(void *car){
 	clock_t start, end;
 	start = clock();
 
-	printf("Thread Starting\n");
+	//printf("Thread Starting\n");
 
-
-	struct carInfo *info = (struct carInfo *) car;
-
+	struct carInfo *info = malloc (sizeof (struct carInfo));
+	info = (struct carInfo *) car;
+	
 
 	int idCar = info->idCar;
 	int parkingTime = info->parkingTime;
@@ -110,10 +113,13 @@ void *lifeCycle(void *car){
 
 	pthread_mutex_lock(&logLock); //bloqueia a escrita no ficheiro para a thread atual
 
-
+	printf("mutex logLock locked\n");
 	int fd, messagelen;
 	char message[100];
-	char * fifoName;
+	char * fifoName = malloc (sizeof (char));
+	char * fifoCar = malloc (sizeof (char));
+
+	sprintf(fifoCar, "car%d", idCar);
 
 	switch(dest)
 	{
@@ -130,7 +136,7 @@ void *lifeCycle(void *car){
 			fifoName = "fifoW";
 			break;
 	}
-
+	printf("opening fifo\n");
 	do
 	{
 		fd=open(fifoName,O_WRONLY);
@@ -142,11 +148,34 @@ void *lifeCycle(void *car){
 	sprintf(message,"%d %d" , idCar, parkingTime);
 	messagelen=strlen(message)+1;
 	write(fd,message,messagelen);
-
+	printf("message with id and parkingTime sent!\n");
 	close(fd);
-
-	printToLog(start, idCar, dest, parkingTime, tVida, obs);
+	
+	int fdA;
+	char str[100];
+	fdA = open(fifoCar, O_RDONLY);
+	printf("fdA opened\n");
+	/*while(readline(fdA,str)){
+		sscanf(str, str);	
+	}*/
+	readline(fdA,str);
+	
+	printf("printing to log!\n");
+	printToLog(start, idCar, dest, parkingTime, tVida, str);	
 	pthread_mutex_unlock(&logLock); //liberta a escrita no ficheiro
+	
+	sem_t *semaphore = sem_open(SEM,O_CREAT, 0660,1);
+	sem_wait(semaphore);
+		
+	pthread_mutex_lock(&logLock);
+	readline(fdA,str);
+	end = clock();
+	tVida=end-start;
+	printToLog(end, idCar, dest, parkingTime, tVida, str);
+	pthread_mutex_unlock(&logLock);
+	
+	sem_unlink(SEM);
+	close(fdA);
 
 
 }
@@ -223,7 +252,7 @@ int main(int argc, char *argv[]){
 			sleepTime = 2 * uClock;
 		}
 
-		printf("Sleeping for %d ticks\n", sleepTime);
+		//printf("Sleeping for %d ticks\n", sleepTime);
 
 
 		sleepTicks(sleepTime);
@@ -273,6 +302,7 @@ int main(int argc, char *argv[]){
 			exit(4);
 		}
 		time(&current);
+		
 	} while(difftime(current,start) < tGenerator);
 
 
@@ -286,4 +316,18 @@ int main(int argc, char *argv[]){
 	return 0;
 
 
+}
+
+
+int readline(int fd, char *str)
+{
+	int n;
+	do
+	{
+		n = read(fd,str,1);
+	}
+	while (n>0 && *str++ != '\0');
+
+
+	return (n>0);
 }
