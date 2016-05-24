@@ -320,7 +320,7 @@ int main(int argc, char *argv[]){
 	
 	
 	printf("over\n");
-	//pthread_exit(NULL);
+	pthread_exit(NULL);
 	
 	printf("over1\n");
 	return 0;
