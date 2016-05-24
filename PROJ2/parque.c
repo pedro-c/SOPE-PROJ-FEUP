@@ -12,7 +12,7 @@
 #define SEM "/semaf"
 #define MAX 512
 
-int n_lugares, t_abertura, opened, nLug=0;
+int n_lugares, t_abertura, opened=1, nLug=0;
 
 FILE* pLog;
 
@@ -110,11 +110,10 @@ void *carAssistant(void *car){
 		write(fdA,message,messagelen);
 		pthread_mutex_unlock(&nLugaresLock);
 		
-		sem_t *semaphore = sem_open(SEM,O_CREAT, 0660,1);
+		
 		
 		sleepTicks(parkingTime);
-		sem_post(semaphore);
-		sem_close(semaphore);
+
 		
 		pthread_mutex_lock(&nLugaresLock); 
 		n_lugares++;
@@ -169,7 +168,7 @@ void *controlador(void* identificador){
 	int fd;
 	char str[100];
 
-
+	
 	while(1){
 		fd = open(fifoName,O_RDONLY);
 		while(readline(fd,str)){
@@ -191,6 +190,7 @@ void *controlador(void* identificador){
 
 		if(idCar == -1){
 			opened = 0;
+			break;
 		}
 		else
 		{
@@ -200,13 +200,16 @@ void *controlador(void* identificador){
 			pthread_create(&t, &attr, &carAssistant, (void *) &carAssist );
 		}
 	 }
+	 
+	 //unlink(fifoName);
 }
 
 int main(int argc, char *argv[]){
 
 	//arg1 -> n_lugares
 	//arg2 -> t_abertura
-
+	sem_t *semaphore = sem_open(SEM, O_CREAT ,0660,1);
+	
 	//Checks for number of arguments
 	if(argc != 3)
 	{
@@ -290,21 +293,37 @@ int main(int argc, char *argv[]){
 		exit(4);
 	}
 
-	do{
-		//saves current time
-		time(&current);
-	}while(difftime(current,start) < t_abertura); //compares current time with starting time and checks if it is time to close the park
+	sleep(t_abertura);
 	
 	
-	unlink("fifoN");
-	unlink("fifoS");
-	unlink("fifoE");
-	unlink("fifoW");
+	sem_wait(semaphore);
+	
+	int fdN = open("fifoN", O_WRONLY);
+	int fdS = open("fifoS", O_WRONLY);
+	int fdE = open("fifoE", O_WRONLY);
+	int fdW = open("fifoW", O_WRONLY);
+	
+	int messagelen;
+	char message[100];
+	
+	sprintf(message,"%d %d" , -1, -1);
+	messagelen=strlen(message)+1;
 	
 	
-
+	write(fdN,message,messagelen);
+	write(fdS,message,messagelen);
+	write(fdE,message,messagelen);
+	write(fdW,message,messagelen);
+	
+	sem_post(semaphore);
+	
+	
+	
+	
+	printf("over\n");
 	pthread_exit(NULL);
-
+	
+	printf("over1\n");
 	return 0;
 
 	//Park closes

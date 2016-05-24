@@ -70,7 +70,7 @@ int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida,
 	}
 	else
 	{
-		nSpaces = 10 - nDigits(tVida);
+		nSpaces = 9 - nDigits(tVida);
 		for(; nSpaces > 0; --nSpaces)
 		{
 			fprintf(gLog, " ");
@@ -136,47 +136,54 @@ void *lifeCycle(void *car){
 			fifoName = "fifoW";
 			break;
 	}
-	printf("opening fifo\n");
-	do
-	{
-		fd=open(fifoName,O_WRONLY);
-		if (fd==-1) sleep(1);
-	}
-	while (fd==-1);
-
-
-	sprintf(message,"%d %d" , idCar, parkingTime);
-	messagelen=strlen(message)+1;
-	write(fd,message,messagelen);
-	printf("message with id and parkingTime sent!\n");
-	close(fd);
 	
-	int fdA;
-	char str[100];
-	fdA = open(fifoCar, O_RDONLY);
-	printf("fdA opened\n");
-	/*while(readline(fdA,str)){
-		sscanf(str, str);	
-	}*/
-	readline(fdA,str);
+	sem_t *semaphore = sem_open(SEM, O_CREAT ,0660,1);
 	
-	printf("printing to log!\n");
-	printToLog(start, idCar, dest, parkingTime, tVida, str);	
-	pthread_mutex_unlock(&logLock); //liberta a escrita no ficheiro
-	if(strcmp(str,"Entrou!")==0){
-		sem_t *semaphore = sem_open(SEM,O_CREAT, 0660,1);
-		sem_wait(semaphore);
-			
-		pthread_mutex_lock(&logLock);
-		readline(fdA,str);
-		end = clock();
-		tVida=end-start;
-		printToLog(end, idCar, dest, parkingTime, tVida, str);
-		pthread_mutex_unlock(&logLock);
+	sem_wait(semaphore);
+	
+	printf("opening fifo\n");	
 		
-		sem_unlink(SEM);
-		close(fdA);
+	fd=open(fifoName,O_WRONLY);
+	if(fd!=-1){
+		sprintf(message,"%d %d" , idCar, parkingTime);
+		messagelen=strlen(message)+1;
+		write(fd,message,messagelen);
+		printf("message with id and parkingTime sent!\n");
+		close(fd);
+		sem_post(semaphore);
+		
+		int fdA;
+		char str[100];
+		fdA = open(fifoCar, O_RDONLY);
+		printf("fdA opened\n");
+		/*while(readline(fdA,str)){
+			sscanf(str, str);	
+		}*/
+		readline(fdA,str);
+		
+		printf("printing to log!\n");
+		printToLog(start, idCar, dest, parkingTime, tVida, str);	
+		pthread_mutex_unlock(&logLock); //liberta a escrita no ficheiro
+		if(strcmp(str,"Entrou!")==0){
+			
+				
+			
+			readline(fdA,str);
+			pthread_mutex_lock(&logLock);
+			end = clock();
+			tVida=end-start;
+			printToLog(end, idCar, dest, parkingTime, tVida, str);
+			pthread_mutex_unlock(&logLock);
+			close(fdA);
+		}
+		
+	}else{
+			sem_post(semaphore);
 	}
+	
+
+
+	
 	
 }
 
