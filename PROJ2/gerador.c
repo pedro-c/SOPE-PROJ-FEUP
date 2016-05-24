@@ -13,22 +13,56 @@
 #define SEM "/semaf"
 #define MAX 512
 
+//Exit code for invalid arguments
+#define ARG_EXIT 1
+//Exit code for error in Random Number Generation
+#define RAND_EXIT 2
+//Exit code for error in thread creation
+#define THREAD_EXIT 3
+
+
 int tGenerator, uClock, id=1;
 FILE* gLog;
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t idLock = PTHREAD_MUTEX_INITIALIZER;
 
-int readline(int fd, char *str);
 
+
+/**
+ * Struct with the relevant information to be passed to thread function
+ */
 struct carInfo {
 	int idCar;
 	char dest;
 	int parkingTime;
 };
 
+/**
+ * Function to read a line from the specified fifo
+ * @param fd Fifo to be read
+ * @param str pointer to the string which will store what is read from the fifo
+*/
+int readline(int fd, char *str)
+{
+	int n;
+	do
+	{
+		n = read(fd,str,1);
+	}
+	while (n>0 && *str++ != '\0');
 
+
+	return (n>0);
+}
+
+/**
+ * Counts the number of digits in a number. Used in formatting the logs
+ * @param Number to have its digits counted
+ */
 int nDigits(int n)
 {
+	if(n == 0)
+		return 1;
 	int nDig = 0;
 
 	while(n > 0)
@@ -40,6 +74,14 @@ int nDigits(int n)
 	return nDig;
 }
 
+/**
+ * Prints the car information to gerador.log
+ * @param startTime Current time
+ * @param idCar Car ID
+ * @param dest Destination of the car (park entrance)
+ * @param parkingTime Time the car will/has be/been parked
+ * @param obs Observation, i.e., if the car entered, exited, the park is full, etc. 
+ */
 int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida, char* obs)
 {
 	int nSpaces = 10 - nDigits(startTime);
@@ -84,6 +126,10 @@ int printToLog (int startTime, int idCar, char dest, int parkingTime, int tVida,
 	return 0;
 }
 
+/**
+ * Sleeps for an amount of ticks
+ * @param numberOfTicks Number of ticks to sleep
+ */
 void sleepTicks(numberOfTicks){
 
 	clock_t start, end;
@@ -94,6 +140,12 @@ void sleepTicks(numberOfTicks){
 	}while((end-start) < numberOfTicks);
 }
 
+
+/**
+ * Vehicle tracker thread function
+ * Sends information of a car to the entrance controller and waits for a response
+ * @param car Struct containg the car's information
+ */
 void *lifeCycle(void *car){
 	clock_t start, end;
 	start = clock();
@@ -190,14 +242,19 @@ void *lifeCycle(void *car){
 
 //TODO change all exit's 'magic' numbers
 
+/** Main generator function
+ * Generates cars that will attempt to enter the park
+ * Receives 2 arguments: the time of operation for the park and the number of ticks the generator will work with
+ */
+
 int main(int argc, char *argv[]){
 
 	//Checks for number of arguments
 	if(argc != 3)
 	{
-		printf("Invalid number of arguments!\n Expected 2, was %d\n", argc - 1);
+		printf("Invalid arguments!\n Correct usage: gerador <int operation_time> <int generator clock ticks>\n");
 		perror("Argument Number");
-		exit(1);
+		exit(ARG_EXIT);
 	}
 
 	tGenerator = atoi(argv[1]);
@@ -206,13 +263,13 @@ int main(int argc, char *argv[]){
 	//checks if inputs are valid (more than zero)
 	if(tGenerator < 1){
 		printf("error: tGenerator < 1");
-		perror("tGenerator must be bigger than 0");
-		exit(1);
+		perror("tGenerator must be an integer bigger than 0");
+		exit(ARG_EXIT);
 	}
 	if(uClock < 1){
 		printf("error: uClock < 1");
-		perror("uClock must be bigger than 0");
-		exit(1);
+		perror("uClock must be an integer bigger than 0");
+		exit(ARG_EXIT);
 	}
 
 
@@ -247,7 +304,7 @@ int main(int argc, char *argv[]){
 		if(randSleep < 0 && randSleep > 9){
 			printf("Invalid sleepTime generation. Check rand code\n");
 			perror("Rand sleep generation\n");
-			exit(2);
+			exit(RAND_EXIT);
 		}
 
 		else if(randSleep <= 4){
@@ -285,7 +342,7 @@ int main(int argc, char *argv[]){
 		default:
 			printf("Invalid entry generation. Check rand code\n");
 			perror("Rand entry generation\n");
-			exit(2);
+			exit(RAND_EXIT);
 		}
 
 		randParkingMultiple = rand() % 10 + 1;
@@ -307,7 +364,7 @@ int main(int argc, char *argv[]){
 		if((pthread_create(&t, &attr, &lifeCycle, (void *) &car)) != 0){
 			printf("Error creating new car thread\n");
 			perror("Creating thread");
-			exit(4);
+			exit(THREAD_EXIT);
 		}
 		time(&current);
 		
@@ -316,8 +373,6 @@ int main(int argc, char *argv[]){
 
 	printf("Generator finished successfully!\n");
 
-	//TODO
-	//SHOW LOG
 	pthread_exit(NULL);
 	fclose(gLog);
 	
@@ -326,16 +381,3 @@ int main(int argc, char *argv[]){
 
 }
 
-
-int readline(int fd, char *str)
-{
-	int n;
-	do
-	{
-		n = read(fd,str,1);
-	}
-	while (n>0 && *str++ != '\0');
-
-
-	return (n>0);
-}
