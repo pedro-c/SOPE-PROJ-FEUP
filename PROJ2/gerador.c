@@ -22,7 +22,11 @@
 
 
 int tGenerator, uClock, id=1;
+
+//Pointer to generator.log file
 FILE* gLog;
+
+
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t idLock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -148,99 +152,122 @@ void sleepTicks(numberOfTicks){
  */
 void *lifeCycle(void *car){
 	clock_t start, end;
+	//Register time where the car was created
 	start = clock();
 
-	//printf("Thread Starting\n");
-
+	//Creates intermediary struct to extract values from the "car" parameter
 	struct carInfo *info = malloc (sizeof (struct carInfo));
 	info = (struct carInfo *) car;
 	
-
+	//Passes parameter's values to new variables for easier handling
 	int idCar = info->idCar;
 	int parkingTime = info->parkingTime;
 	char dest = info->dest;
 	int tVida = -1;
 	char obs[MAX] = "TMP";
-	pthread_mutex_unlock(&idLock); //liberta a edição da struct car no main
+	
+	//Unlocks the writting of the car's values
+	pthread_mutex_unlock(&idLock); 
 
-	pthread_mutex_lock(&logLock); //bloqueia a escrita no ficheiro para a thread atual
+	//Locks for writting to generator.log
+	pthread_mutex_lock(&logLock); 
 
-	printf("mutex logLock locked\n");
 	int fd, messagelen;
 	char message[100];
+	
+	//Name of the fifo used to communicate with the entrance's controller
 	char * fifoName = malloc (sizeof (char));
+	
+	//Name of the "personal" fifo for each car
 	char * fifoCar = malloc (sizeof (char));
 
+	//Creates name for the car's fifo based on its unique ID
 	sprintf(fifoCar, "car%d", idCar);
 
+	//Creates fifo's name based on the destination
 	switch(dest)
 	{
 	case 'N':
 		fifoName = "fifoN";
 		break;
 	case 'S':
-			fifoName = "fifoS";
-			break;
+		fifoName = "fifoS";
+		break;
 	case 'E':
-			fifoName = "fifoE";
-			break;
+		fifoName = "fifoE";
+		break;
 	case 'W':
-			fifoName = "fifoW";
-			break;
+		fifoName = "fifoW";
+		break;
 	}
 	
-	sem_t *semaphore = sem_open(SEM, O_CREAT ,0660,1);
+	//Semaphore to avoid writting to fifo at the same time as the main function in parque.c and other threads
 	
+	sem_t *semaphore = sem_open(SEM, O_CREAT ,0660,1);
 	sem_wait(semaphore);
 	
-	printf("opening fifo\n");	
-		
+	//Opens fifo in write mode to write car's information
 	fd=open(fifoName,O_WRONLY);
 	if(fd!=-1){
+		
+		//Creates message to be writen in controller's fifo
 		sprintf(message,"%d %d" , idCar, parkingTime);
 		messagelen=strlen(message)+1;
+		
+		//Writes to fifo
 		write(fd,message,messagelen);
-		printf("message with id and parkingTime sent!\n");
+		
+		//Closes fifo
 		close(fd);
 		sem_post(semaphore);
 		
+		//Opens car's fifo for reading, will wait for an answer from park
 		int fdA;
 		char str[100];
 		fdA = open(fifoCar, O_RDONLY);
-		printf("fdA opened\n");
-		/*while(readline(fdA,str)){
-			sscanf(str, str);	
-		}*/
+		
+		//Reads a line from the car's fifo and saves it in str
 		readline(fdA,str);
 		
-		printf("printing to log!\n");
-		printToLog(start, idCar, dest, parkingTime, tVida, str);	
-		pthread_mutex_unlock(&logLock); //liberta a escrita no ficheiro
+
+		//Prints to log with the answer received
+		printToLog(start, idCar, dest, parkingTime, tVida, str);
+		
+		//Unlocks writing in log
+		pthread_mutex_unlock(&logLock);
+		
+		//If the answer received was that the car entered the park:
 		if(strcmp(str,"Entrou!")==0){
 			
 				
-			
+			//Waits for another answer: the "exit" answer
 			readline(fdA,str);
+			
+			//Locks writing in log 
 			pthread_mutex_lock(&logLock);
 			end = clock();
+			
+			//Calculates the time elapsed since the car was created
 			tVida=end-start;
-			printf("printing to log2!\n");
+
 			printToLog(end, idCar, dest, parkingTime, tVida, str);
+			
+			//Unlocks writing in log
 			pthread_mutex_unlock(&logLock);
+			
+			//Closes car's fifo
 			close(fdA);
 		}
+	
 		
-	}else{
+	}
+	//If the answer received meant that the park was full or closed
+	else 
+	{
 			sem_post(semaphore);
 	}
-	
 
-
-	
-	
 }
-
-//TODO change all exit's 'magic' numbers
 
 /** Main generator function
  * Generates cars that will attempt to enter the park
@@ -257,10 +284,11 @@ int main(int argc, char *argv[]){
 		exit(ARG_EXIT);
 	}
 
+	//Stores parameters in global variables
 	tGenerator = atoi(argv[1]);
 	uClock = atoi(argv[2]);
 
-	//checks if inputs are valid (more than zero)
+	//Checks if inputs are valid
 	if(tGenerator < 1){
 		printf("error: tGenerator < 1");
 		perror("tGenerator must be an integer bigger than 0");
@@ -273,40 +301,35 @@ int main(int argc, char *argv[]){
 	}
 
 
-	//Create new empty file to store info
+	//Create new empty file for the log
 	gLog = fopen("gerador.log", "w");
+	
+	//Prints the header
 	fprintf(gLog, "  t(ticks) ;   id_viat ;   destino ;   t_estac ;   t_vida ;   observs\n");
-
-
 
 	//Sets up a random number generator seed
 	srand(time(NULL));
-
 
 	//Sets up needed variables
 	int randEntry, randSleep, randParkingMultiple;
 	int parkingTime, sleepTime;
 	int idCar;
 	int counter = 0;
-
-
 	time_t start, current;
+
+	//Registers time because we will need it to stop the generator
 	time(&start);
 
 	do{
-
-		//sleeps for some time before creating new car
-
-		printf("Starting rands\n");
-
+		//Creates a pseudo random number of ticks that the generator will sleep
 		randSleep = rand() % 10;
-
 		if(randSleep < 0 && randSleep > 9){
 			printf("Invalid sleepTime generation. Check rand code\n");
-			perror("Rand sleep generation\n");
+			perror("Rand sleep generation");
 			exit(RAND_EXIT);
 		}
-
+		
+		//The generator will sleep for 0 (50% chance), 1 (30% chance) or 2 (20% chance) times the generator clock's ticks
 		else if(randSleep <= 4){
 			sleepTime = 0;
 		}
@@ -316,16 +339,15 @@ int main(int argc, char *argv[]){
 		else{
 			sleepTime = 2 * uClock;
 		}
-
-		//printf("Sleeping for %d ticks\n", sleepTime);
-
-
+		
+		//Sleeps
 		sleepTicks(sleepTime);
 
 		//Create new car
 		char entryFifoName;
+		
+		//Randomly picks an entrance for the car
 		randEntry = rand() % 4;
-
 		switch(randEntry){
 		case 0:
 			entryFifoName = 'N';
@@ -341,13 +363,18 @@ int main(int argc, char *argv[]){
 			break;
 		default:
 			printf("Invalid entry generation. Check rand code\n");
-			perror("Rand entry generation\n");
+			perror("Rand entry generation");
 			exit(RAND_EXIT);
 		}
 
+		//Randomly generates the time the car will be parked
 		randParkingMultiple = rand() % 10 + 1;
+		
+		//Parking time is equally likely to be any multiple 1-10 of the generator clock's ticks
 		parkingTime = randParkingMultiple * uClock;
 
+
+		//Sets up thread variables, including preparing the Detached Mode atrribute
 		pthread_t t;
 		pthread_attr_t attr;
 		pthread_attr_init(&attr);
@@ -355,29 +382,36 @@ int main(int argc, char *argv[]){
 
 		pthread_mutex_lock(&idLock); //bloqueia a edição da struct car
 
+		//Stores car's values
 		idCar = id++;
 		struct carInfo car;
 		car.idCar = idCar;
 		car.dest = entryFifoName;
 		car.parkingTime = parkingTime;
 
+		//Creates thread tracker for each car
 		if((pthread_create(&t, &attr, &lifeCycle, (void *) &car)) != 0){
 			printf("Error creating new car thread\n");
 			perror("Creating thread");
 			exit(THREAD_EXIT);
 		}
+		
+		//Registers current time
 		time(&current);
 		
+		//Checks if it's time to stop the generator
 	} while(difftime(current,start) < tGenerator);
 
 
 	printf("Generator finished successfully!\n");
 
+	//Waits for all threads to be done
 	pthread_exit(NULL);
+	
+	//Closes generator.log
 	fclose(gLog);
 	
 	return 0;
-
 
 }
 
