@@ -1,0 +1,11 @@
+  t(ticks) ;   nLug    ;   id_viat ;   observs
+      1054 ;         1 ;         1 ;estacionamento
+      1284 ;         2 ;         2 ;estacionamento
+      2935 ;         3 ;         3 ;estacionamento
+     59934 ;         4 ;         4 ;estacionamento
+     77466 ;         5 ;         5 ;cheio
+   1001082 ;         4 ;         1 ;saida
+   2077561 ;         3 ;         5 ;saida
+   4001309 ;         2 ;         2 ;saida
+   6002967 ;         1 ;         3 ;saida
+  10059973 ;          0 ;         4 ;saida
