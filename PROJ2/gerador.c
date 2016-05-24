@@ -172,6 +172,7 @@ void *lifeCycle(void *car){
 			pthread_mutex_lock(&logLock);
 			end = clock();
 			tVida=end-start;
+			printf("printing to log2!\n");
 			printToLog(end, idCar, dest, parkingTime, tVida, str);
 			pthread_mutex_unlock(&logLock);
 			close(fdA);
@@ -317,9 +318,9 @@ int main(int argc, char *argv[]){
 
 	//TODO
 	//SHOW LOG
-
+	pthread_exit(NULL);
 	fclose(gLog);
-
+	
 	return 0;
 
 

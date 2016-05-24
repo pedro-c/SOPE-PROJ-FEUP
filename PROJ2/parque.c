@@ -169,7 +169,7 @@ void *controlador(void* identificador){
 	char str[100];
 
 	
-	while(1){
+	while(opened){
 		fd = open(fifoName,O_RDONLY);
 		while(readline(fd,str)){
 			sscanf(str, "%d %d", &idCar, &parkingTime);
@@ -179,9 +179,7 @@ void *controlador(void* identificador){
 
 		}
 		close(fd);
-	
 
-	
 		pthread_t t;
 		pthread_attr_t attr;
 		pthread_attr_init(&attr);
@@ -269,28 +267,28 @@ int main(int argc, char *argv[]){
 	if((pthread_create(&t, &attr, &controlador, &NN)) != 0){
 		printf("Error creating new 'controlador' thread\n");
 		perror("Creating thread");
-		exit(4);
+		//exit(4);
 	}
 
 	//creates thread 'controlador' S
 	if((pthread_create(&t, &attr, &controlador, &SS)) != 0){
 		printf("Error creating new 'controlador' thread\n");
 		perror("Creating thread");
-		exit(4);
+		//exit(4);
 	}
 
 	//creates thread 'controlador' E
 	if((pthread_create(&t, &attr, &controlador, &EE)) != 0){
 		printf("Error creating new 'controlador' thread\n");
 		perror("Creating thread");
-		exit(4);
+		//exit(4);
 	}
 
 	//creates thread 'controlador' W
 	if((pthread_create(&t, &attr, &controlador, &WW)) != 0){
 		printf("Error creating new 'controlador' thread\n");
 		perror("Creating thread");
-		exit(4);
+		//exit(4);
 	}
 
 	sleep(t_abertura);
@@ -315,13 +313,14 @@ int main(int argc, char *argv[]){
 	write(fdE,message,messagelen);
 	write(fdW,message,messagelen);
 	
+	
 	sem_post(semaphore);
 	
 	
 	
 	
 	printf("over\n");
-	pthread_exit(NULL);
+	//pthread_exit(NULL);
 	
 	printf("over1\n");
 	return 0;
