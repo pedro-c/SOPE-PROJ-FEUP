@@ -1,2 +1,3 @@
 language: C
-script: make
+script: -cd ./PROJ2
+        -make
